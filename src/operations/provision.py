@@ -38,7 +38,7 @@ def initial_provision (virtual_connection,parameters,snapshot,repository):
     crt_svc =  executeScript.execute_powershell(virtual_connection,'crtOraSvc.ps1',env)
     logger.debug("Creating Service: {}".format(crt_svc))
 
-    copy_to_vdbdir =  executeScript.execute_powershell(virtual_connection,'vdb_copy_to_vdbdir.ps1',env)
+    copy_to_vdbdir =  executeScript.execute_powershell(virtual_connection,'vdb_rename_vdbdir.ps1',env)
     logger.debug("Copying dSource to VDB Dir: {}".format(copy_to_vdbdir))
 
     crt_dirs =  executeScript.execute_powershell(virtual_connection,'vdb_crtDirectories.ps1',env)
