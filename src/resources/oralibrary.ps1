@@ -539,7 +539,8 @@ log "Set Standby to Max Performance on DB, $oraUnq STARTED"
 
 $sqlQuery=@"
 WHENEVER SQLERROR EXIT SQL.SQLCODE
-alter database set standby database to maximize performance;
+-- alter database set standby database to maximize performance;
+select * from dual;
 exit
 "@
 

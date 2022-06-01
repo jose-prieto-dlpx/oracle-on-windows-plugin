@@ -54,7 +54,7 @@ $PSDefaultParameterValues['*:Encoding'] = 'ascii'
 
 $sqlQuery=@"
 WHENEVER SQLERROR EXIT SQL.SQLCODE
-set linesize 200 heading off feedback off
+set linesize 500 heading off feedback off
 col file_name format a200
 select 'alter database rename file ''' ||NAME|| ''' to '||'''$virtMnt'||'\$oraUnq\'||SUBSTR(NAME,(INSTR(NAME,'\',-1)+1),LENGTH(NAME))||''';' filename from v`$datafile;
 exit
@@ -75,7 +75,7 @@ echo $result > $renamevdbfile
 
 $sqlQuery=@"
 WHENEVER SQLERROR EXIT SQL.SQLCODE
-set linesize 200 heading off feedback off
+set linesize 500 heading off feedback off
 col file_name format a200
 select 'alter database rename file ''' ||member|| ''' to '||'''$virtMnt'||'\$oraUnq\'||SUBSTR(member,(INSTR(member,'\',-1)+1),LENGTH(member))||''';' member from v`$logfile;
 exit
@@ -96,7 +96,7 @@ echo $result >> $renamevdbfile
 
 $sqlQuery=@"
 WHENEVER SQLERROR EXIT SQL.SQLCODE
-set linesize 200 heading off feedback off
+set linesize 500 heading off feedback off
 col file_name format a200
 select 'alter database rename file ''' ||NAME|| ''' to '||'''$virtMnt'||'\$oraUnq\'||SUBSTR(NAME,(INSTR(NAME,'\',-1)+1),LENGTH(NAME))||''';' name from v`$tempfile;
 exit
