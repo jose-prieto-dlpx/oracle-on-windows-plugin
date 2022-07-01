@@ -56,9 +56,15 @@ $rename_files = . $Env:ORACLE_HOME\bin\sqlplus.exe "/ as sysdba" "@$renamelogtem
 
 log "[SQL- rename_files] $rename_files"
 
+versiondb = get_db_version
+
+if (($versiondb -eq "ENTERPRISE" )) {
+
 #### set standby to maximize performance
 
 standby_max_perf
+
+}
 
 ######### open database readonly ######
 

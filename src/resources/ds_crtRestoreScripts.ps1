@@ -204,7 +204,7 @@ remove_empty_lines $restorecmdfile
 
  $sqlQuery=@"
  WHENEVER SQLERROR EXIT SQL.SQLCODE
- set linesize 200 heading off feedback off
+ set linesize 500 heading off feedback off
  col file_name format a200
 select 'alter database rename file ''' ||member|| ''' to '||'''$stgMnt'||'\$oraSrc\'||SUBSTR(member,(INSTR(member,'\',-1)+1),LENGTH(member))||''';' member from v`$logfile;
 exit

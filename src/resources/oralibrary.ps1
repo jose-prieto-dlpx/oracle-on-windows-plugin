@@ -540,6 +540,7 @@ log "Set Standby to Max Performance on DB, $oraUnq STARTED"
 $sqlQuery=@"
 WHENEVER SQLERROR EXIT SQL.SQLCODE
 alter database set standby database to maximize performance;
+select * from dual;
 exit
 "@
 
@@ -556,4 +557,36 @@ exit 1
 
 log "Set Standby to Max Performance on DB, $oraUnq FINISHED"
 
+}
+
+function get_db_version() {
+
+log "Getting database version, $oraUnq STARTED"
+
+$sqlQuery=@"
+WHENEVER SQLERROR EXIT SQL.SQLCODE
+set newpage 0; 
+set echo off; 
+set feedback off; 
+set heading off; 
+set trimout on;
+set trimspool on; 
+col version format a10 wrap
+SELECT CASE WHEN BANNER like '%Standard%' THEN 'STANDARD'
+            WHEN BANNER like '%Enterprise%' THEN 'ENTERPRISE'
+       ELSE 'OTHER' END as version
+FROM v`$version
+WHERE rownum < 2
+exit;
+"@
+  
+log "[SQL Query - get_db_version] $sqlQuery"
+  
+$result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
+  
+log "[SQL - get_db_version] $result"
+  
+log "Getting database version, $oraUn FINISHED"
+
+return $result
 }
