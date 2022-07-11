@@ -56,7 +56,7 @@ $rename_files = . $Env:ORACLE_HOME\bin\sqlplus.exe "/ as sysdba" "@$renamelogtem
 
 log "[SQL- rename_files] $rename_files"
 
-versiondb = get_db_version
+$versiondb = get_db_version
 
 if (($versiondb -eq "ENTERPRISE" )) {
 
