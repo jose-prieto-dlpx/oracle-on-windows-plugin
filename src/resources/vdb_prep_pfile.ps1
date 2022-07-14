@@ -84,7 +84,7 @@ cp ${initfile} $masterinit
 
 ## Update master file as per custom init.ora
 
-log "Checking for custom init.ora, $initParams STARTED"
+log "Checking for custom init parameters, $initParams STARTED"
 
 $initParams = $initParams -replace "u'","'"
 
@@ -110,7 +110,7 @@ foreach($obj in $jstr)
       }
 }
 
-log "Checking for custom init.ora, $initParams FINISHED"
+log "Checking for for custom init parameters, $initParams FINISHED"
 
 ### Check for init.ora file
 log "Checking for custom init.ora file, $initParamsFile STARTED"
@@ -151,10 +151,10 @@ log "Copy file ${initfile} to $oracleHome\database\init${oraUnq}.ora"
 
 if ((Test-Path "$oracleHome\database\init${oraUnq}.ora")) {
 	mv "$oracleHome\database\init${oraUnq}.ora" "$oracleHome\database\init${oraUnq}.ora.bak"
-	cp ${initfile} "$oracleHome\database\init${oraUnq}.ora"
+	cp ${masterinit} "$oracleHome\database\init${oraUnq}.ora"
 }
 else {
-	cp ${initfile} "$oracleHome\database\init${oraUnq}.ora"
+	cp ${masterinit} "$oracleHome\database\init${oraUnq}.ora"
 }
 
 # backup of spfile in Oracle Home
