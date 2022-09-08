@@ -230,7 +230,7 @@ echo "ALLOCATE CHANNEL T2 DEVICE TYPE disk;" >> $restorecmdfile
  WHENEVER SQLERROR EXIT SQL.SQLCODE
  set linesize 200 heading off feedback off
  col file_name format a200
-select 'set newname for datafile ' ||FILE#|| ' to '||'''$stgMnt'||'\$oraSrc\'||SUBSTR(NAME,(INSTR(NAME,'\',-1)+1),LENGTH(NAME))||''';' filename from v`$datafile;
+select 'set newname for datafile ' ||FILE#|| ' to '||'''$stgMnt'||'\$oraSrc\'||SUBSTR(NAME,(INSTR(REPLACE(NAME,'/','\'),'\',-1)+1),LENGTH(NAME))||''';' filename from v`$datafile;
 exit
 "@
 
@@ -274,7 +274,7 @@ remove_empty_lines $restorecmdfile
  WHENEVER SQLERROR EXIT SQL.SQLCODE
  set linesize 200 heading off feedback off
  col file_name format a200
-select 'alter database rename file ''' ||member|| ''' to '||'''$stgMnt'||'\$oraSrc\'||SUBSTR(member,(INSTR(member,'\',-1)+1),LENGTH(member))||''';' member from v`$logfile;
+select 'alter database rename file ''' ||member|| ''' to '||'''$stgMnt'||'\$oraSrc\'||SUBSTR(member,(INSTR(REPLACE(member,'/','\'),'\',-1)+1),LENGTH(member))||''';' member from v`$logfile;
 exit
 "@
 
@@ -295,7 +295,7 @@ echo $result > $renamelogtempfile
  WHENEVER SQLERROR EXIT SQL.SQLCODE
  set linesize 200 heading off feedback off
  col file_name format a200
-select 'alter database rename file ''' ||name|| ''' to '||'''$stgMnt'||'\$oraSrc\'||SUBSTR(name,(INSTR(name,'\',-1)+1),LENGTH(name))||''';' name from v`$tempfile;
+select 'alter database rename file ''' ||name|| ''' to '||'''$stgMnt'||'\$oraSrc\'||SUBSTR(name,(INSTR(REPLACE(NAME,'/','\'),'\',-1)+1),LENGTH(name))||''';' name from v`$tempfile;
 exit
 "@
 
