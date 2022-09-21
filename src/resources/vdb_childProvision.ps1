@@ -71,6 +71,9 @@ extract_string "STARTUP NOMOUNT" ";" $ccf_file_old > $ccf_file_new
 (Get-Content -path $ccf_file_new -Raw) -replace 'NORESETLOGS','RESETLOGS' | Set-Content -Path $ccf_file_new
 (Get-Content -path $ccf_file_new -Raw) -replace $oraVDBSrc, $oraUnq | Set-Content -Path $ccf_file_new
 (Get-Content -path $ccf_file_new -Raw) -replace '-- STANDBY LOGFILE','' | Set-Content -Path $ccf_file_new
+
+# Adding line feeds after each ',' to prevent SQL*Plus error SP2-0027: Input is too long if there are a high number of datafiles
+(Get-Content -path $ccf_file_new -Raw) -replace ',',", `r`n" | Set-Content -Path $ccf_file_new
 echo ";" >> $ccf_file_new
 
 remove_empty_lines $ccf_file_new

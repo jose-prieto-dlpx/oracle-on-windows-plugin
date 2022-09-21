@@ -106,7 +106,7 @@ log "[SQL Query - rename_tempfiles] $sqlQuery"
 
 $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
 
-log "[rename_logfiles] $result"
+log "[rename_tempfiles] $result"
 
 if ($LASTEXITCODE -ne 0){
 echo "Sql Query failed with ORA-$LASTEXITCODE"
