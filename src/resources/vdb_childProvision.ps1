@@ -45,11 +45,11 @@ $PSDefaultParameterValues['*:Encoding'] = 'ascii'
 log "Copy master file ${masterinit} to $oracleHome\database\init${oraUnq}.ora"
 
 if ((Test-Path "$oracleHome\database\init${oraUnq}.ora")) {
-	mv "$oracleHome\database\init${oraUnq}.ora" "$oracleHome\database\init${oraUnq}.ora.bak" -force
-	cp ${masterinit} "$oracleHome\database\init${oraUnq}.ora"
+	Move-Item "$oracleHome\database\init${oraUnq}.ora" "$oracleHome\database\init${oraUnq}.ora.bak" -force
+	Copy-Item ${masterinit} "$oracleHome\database\init${oraUnq}.ora"
 }
 else {
-	cp ${masterinit} "$oracleHome\database\init${oraUnq}.ora"
+	Copy-Item ${masterinit} "$oracleHome\database\init${oraUnq}.ora"
 }
 
 ######### Create new ccf.sql file ######
@@ -59,7 +59,7 @@ log "Moving ccf.sql file to ccf.sql.old STARTED"
 $ccf_file_old = "$virtMnt\$oraUnq\ccf_old.sql"
 $ccf_file_new = "$virtMnt\$oraUnq\CCF.SQL"
 
-mv $ccf_file_new $ccf_file_old -force
+Move-Item $ccf_file_new $ccf_file_old -force
 
 log "Moving ccf.sql file to ccf.sql.old FINISHED"
 
@@ -74,7 +74,7 @@ extract_string "STARTUP NOMOUNT" ";" $ccf_file_old > $ccf_file_new
 
 # Adding line feeds after each ',' to prevent SQL*Plus error SP2-0027: Input is too long if there are a high number of datafiles
 (Get-Content -path $ccf_file_new -Raw) -replace ',',", `r`n" | Set-Content -Path $ccf_file_new
-echo ";" >> $ccf_file_new
+Write-Output ";" >> $ccf_file_new
 
 remove_empty_lines $ccf_file_new
 
@@ -114,7 +114,7 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
 
 log "[SQL - get_childVDB_LogFiles] $result"
 
-echo $result > $logFiles
+Write-Output $result > $logFiles
 
 remove_empty_lines $logFiles
 
@@ -128,8 +128,8 @@ log "Perform Media Recovery for Child VDB, $oraUnq STARTED"
 
 ForEach ($log in (Get-Content $logFiles))
 {
-echo "#########################" >> $applyRedoLog
-echo $log >> $applyRedoLog
+Write-Output "#########################" >> $applyRedoLog
+Write-Output $log >> $applyRedoLog
 $sqlQuery=@"
 RECOVER DATABASE USING BACKUP CONTROLFILE
 $log
@@ -161,7 +161,7 @@ db_open_resetlogs
 
 log "Moving ccf.sql file to ccf.sql.orig STARTED"
 
-mv "$virtMnt\$oraUnq\ccf.sql" "$virtMnt\$oraUnq\ccf_orig.sql" -force
+Move-Item "$virtMnt\$oraUnq\ccf.sql" "$virtMnt\$oraUnq\ccf_orig.sql" -force
 
 log "Moving ccf.sql file to ccf.sql.original FINISHED"
 
@@ -170,5 +170,38 @@ create_control_file $virtMnt $oraUnq
 ####### get database state ##########
 
 get_db_status
+
+####### Create spfile and restart VDB #######
+
+log "Create spfile from pfile, $oracleHome\database\init${oraUnq}.ora STARTED"
+
+if ((Test-Path "$oracleHome\database\spfile${oraUnq}.ora")) {
+	Move-Item "$oracleHome\database\spfile${oraUnq}.ora" "$oracleHome\database\spfile${oraUnq}.ora.bak" -force	
+}
+
+
+$sqlQuery=@"
+WHENEVER SQLERROR EXIT SQL.SQLCODE
+create spfile from pfile='$virtMnt\$oraUnq\init${oraUnq}.ora.master'
+exit
+"@
+
+log "[SQL Query - crt_sp_file] $sqlQuery"
+
+$result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
+
+log "[crt_sp_file] $result"
+
+if ($LASTEXITCODE -ne 0){
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+exit 1
+}
+
+log "Create spfile from pfile, $virtMnt\$oraUnq\init${oraUnq}.ora.master FINISHED"
+
+log "Restarting VDB to use spfile"
+
+shutdown "immediate"
+startup 
 
 log "Provision Child VDB, $oraUnq FINISHED"

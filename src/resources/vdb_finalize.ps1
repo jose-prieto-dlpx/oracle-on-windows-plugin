@@ -130,8 +130,9 @@ exit 1
 
 log "Create spfile, $virtMnt\$oraUnq\spfile${oraUnq}.ora from pfile, $virtMnt\$oraUnq\init${oraUnq}.ora.master FINISHED"
 
-######### VDB startup ######
+######### VDB restart with spfile ######
 
+shutdown "immediate"
 startup
 
 ######### control file create #####
