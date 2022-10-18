@@ -182,7 +182,7 @@ if ((Test-Path "$oracleHome\database\spfile${oraUnq}.ora")) {
 
 $sqlQuery=@"
 WHENEVER SQLERROR EXIT SQL.SQLCODE
-create spfile from pfile='$virtMnt\$oraUnq\init${oraUnq}.ora'
+create spfile from pfile='$oracleHome\database\init${oraUnq}.ora';
 exit
 "@
 
@@ -197,11 +197,11 @@ Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
-log "Create spfile from pfile, $virtMnt\$oraUnq\init${oraUnq}.ora FINISHED"
+log "Create spfile from pfile, $oracleHome\database\init${oraUnq}.ora FINISHED"
 
 log "Restarting VDB to use spfile"
 
-shutdown "immediate"
-startup 
+stop_OraService ${oraUnq} "srvc,inst" "immediate"
+start_OraService ${oraUnq} "srvc,inst"
 
 log "Provision Child VDB, $oraUnq FINISHED"
