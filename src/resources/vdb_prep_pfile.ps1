@@ -110,7 +110,7 @@ foreach($obj in $jstr)
       }
 }
 
-log "Checking for for custom init parameters, $initParams FINISHED"
+log "Checking for custom init parameters, $initParams FINISHED"
 
 ### Check for init.ora file
 log "Checking for custom init.ora file, $initParamsFile STARTED"

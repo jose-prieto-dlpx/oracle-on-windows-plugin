@@ -15,7 +15,7 @@ $file = $args[0]
 
 log "Remove Empty lines, $file STARTED"
 
-(gc $file) | ? {$_.trim() -ne "" } | set-content $file
+(Get-Content $file) | ? {$_.trim() -ne "" } | set-content $file
 $content = [System.IO.File]::ReadAllText($file)
 $content = $content.Trim()
 [System.IO.File]::WriteAllText($file, $content)
@@ -52,6 +52,7 @@ function stop_OraService(){
 
   $svc_status = check_srvc_status $oraUnq
 
+  log "Service status is $svc_status"
   log "Stopping of Oracle Service, $oraUnq FINISHED"
 
 }
@@ -80,6 +81,7 @@ function start_OraService(){
 
   $svc_status = check_srvc_status $oraUnq
 
+  log "Service status is $svc_status"
   log "Starting of Oracle Service, $oraUnq FINISHED"
 
 }
@@ -110,8 +112,8 @@ function create_OraService(){
 
   log "Creation of Oracle Service, $oraUnq STARTED"
 
-  $crtSvc = . $oracleHome\bin\oradim.exe -new -sid $oraUnq -RUNAS $oraUser/$oraPwd
-  log "[Oracle Service, $oracleHome\bin\oradim.exe -new -sid $oraUnq -RUNAS $oraUser/*****] $crtSvc"
+  $crtSvc = . $oracleHome\bin\oradim.exe -new -sid $oraUnq -RUNAS $oraUser/$oraPwd -spfile
+  log "[Oracle Service, $oracleHome\bin\oradim.exe -new -sid $oraUnq -RUNAS $oraUser/***** -spfile] $crtSvc"
 
   if ($crtSvc -like "*(OS 1073)*"){
       log "[Oracle Service Already Exists] $oraUnq"
@@ -172,7 +174,7 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[startup_mount] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
@@ -200,7 +202,7 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[startup] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
@@ -231,7 +233,7 @@ log "[shutdown] $result"
 log "Shutdown $shutdowntype database, $oraUnq FINISHED"
 
 }
-
+ 
 function get_db_status(){
 
 log "Getting database status, $oraUnq STARTED"
@@ -273,7 +275,7 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[open_readonly] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 
 log "Alter DB Open ReadOnly, $oraUnq FINISHED"
@@ -301,7 +303,7 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[start_mount] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
@@ -327,7 +329,7 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[startup_mount_restrict] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
@@ -352,7 +354,7 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[disable_flashback] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
@@ -377,7 +379,7 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[open_resetlogs] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
@@ -405,7 +407,7 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[crt_ctrl_file] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
@@ -453,7 +455,7 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[startup_nomount] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
@@ -480,7 +482,7 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[crt_ctrl_file] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
@@ -505,7 +507,7 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[disable_archivelog] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
@@ -551,7 +553,7 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[max_perf] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 

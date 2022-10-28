@@ -127,7 +127,8 @@ $sqlQuery=@"
  set echo off
  set NewPage none
  set numwidth 40
-select (greatest(max(absolute_fuzzy_change#),max(checkpoint_change#))) "endscn" from (select file#, completion_time, checkpoint_change#, absolute_fuzzy_change# from v`$backup_datafile where (incremental_level in ( 0, 1 ) OR incremental_level is null) and trunc(completion_time) = trunc(to_date('$end_time','dd-mon-yyyy hh24:mi:ss')) and completion_time <= to_date('$end_time','dd-mon-yyyy hh24:mi:ss') order by completion_time desc);
+ select (greatest(max(absolute_fuzzy_change#),max(checkpoint_change#))) "endscn" from ( select file#, completion_time, checkpoint_change#, absolute_fuzzy_change# from v`$backup_datafile, ( select  max(start_TIME) start_time, max(END_TIME) end_time  from v`$RMAN_BACKUP_JOB_DETAILS  where INPUT_TYPE in ('DB FULL','DB INCR','ARCHIVELOG')  and status in ('COMPLETED','COMPLETED WITH WARNINGS') ) tsdata where ( incremental_level in (0, 1) OR incremental_level is null ) and file# <> 0 and completion_time between tsdata.start_time and tsdata.end_time and checkpoint_time between tsdata.start_time and tsdata.end_time order by completion_time desc ); 
+ exit
  exit
 "@
 
@@ -142,7 +143,7 @@ select (greatest(max(absolute_fuzzy_change#),max(checkpoint_change#))) "endscn" 
  set echo off
  set NewPage none
  set numwidth 40
-select (greatest(max(absolute_fuzzy_change#),max(checkpoint_change#))) "endscn" from (select file#, completion_time, checkpoint_change#, absolute_fuzzy_change# from v`$backup_datafile where (incremental_level in ( 0, 1 ) OR incremental_level is null) and trunc(completion_time) = trunc(to_date('$end_time','dd-mon-yyyy hh24:mi:ss')) and file# <> 0 and completion_time <= to_date('$end_time','dd-mon-yyyy hh24:mi:ss') order by completion_time desc);
+ select (greatest(max(absolute_fuzzy_change#),max(checkpoint_change#))) "endscn" from ( select file#, completion_time, checkpoint_change#, absolute_fuzzy_change# from v`$backup_datafile, ( select  max(start_TIME) start_time, max(END_TIME) end_time  from v`$RMAN_BACKUP_JOB_DETAILS  where INPUT_TYPE in ('DB FULL','DB INCR')  and status in ('COMPLETED','COMPLETED WITH WARNINGS') ) tsdata where ( incremental_level in (0, 1) OR incremental_level is null ) and file# <> 0 and completion_time between tsdata.start_time and tsdata.end_time and checkpoint_time between tsdata.start_time and tsdata.end_time order by completion_time desc );
  exit
 "@
 
@@ -230,7 +231,7 @@ echo "ALLOCATE CHANNEL T2 DEVICE TYPE disk;" >> $restorecmdfile
  WHENEVER SQLERROR EXIT SQL.SQLCODE
  set linesize 200 heading off feedback off
  col file_name format a200
-select 'set newname for datafile ' ||FILE#|| ' to '||'''$stgMnt'||'\$oraSrc\'||SUBSTR(NAME,(INSTR(NAME,'\',-1)+1),LENGTH(NAME))||''';' filename from v`$datafile;
+select 'set newname for datafile ' ||FILE#|| ' to '||'''$stgMnt'||'\$oraSrc\'||SUBSTR(NAME,(INSTR(REPLACE(NAME,'/','\'),'\',-1)+1),LENGTH(NAME))||''';' filename from v`$datafile;
 exit
 "@
 
@@ -274,7 +275,7 @@ remove_empty_lines $restorecmdfile
  WHENEVER SQLERROR EXIT SQL.SQLCODE
  set linesize 200 heading off feedback off
  col file_name format a200
-select 'alter database rename file ''' ||member|| ''' to '||'''$stgMnt'||'\$oraSrc\'||SUBSTR(member,(INSTR(member,'\',-1)+1),LENGTH(member))||''';' member from v`$logfile;
+select 'alter database rename file ''' ||member|| ''' to '||'''$stgMnt'||'\$oraSrc\'||SUBSTR(member,(INSTR(REPLACE(member,'/','\'),'\',-1)+1),LENGTH(member))||''';' member from v`$logfile;
 exit
 "@
 
@@ -295,7 +296,7 @@ echo $result > $renamelogtempfile
  WHENEVER SQLERROR EXIT SQL.SQLCODE
  set linesize 200 heading off feedback off
  col file_name format a200
-select 'alter database rename file ''' ||name|| ''' to '||'''$stgMnt'||'\$oraSrc\'||SUBSTR(name,(INSTR(name,'\',-1)+1),LENGTH(name))||''';' name from v`$tempfile;
+select 'alter database rename file ''' ||name|| ''' to '||'''$stgMnt'||'\$oraSrc\'||SUBSTR(name,(INSTR(REPLACE(NAME,'/','\'),'\',-1)+1),LENGTH(name))||''';' name from v`$tempfile;
 exit
 "@
 

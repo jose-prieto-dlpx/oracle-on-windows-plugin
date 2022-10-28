@@ -33,3 +33,4 @@ pyvenv.cfg
 src/generated/*
 venv/
 lib64
+*.vscode

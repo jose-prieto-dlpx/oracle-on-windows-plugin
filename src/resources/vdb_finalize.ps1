@@ -46,7 +46,7 @@ log "Updating init${oraUnq}.ora.master file FINISHED"
 
 log "Copying init${oraUnq}.ora.master file to $initfile STARTED"
 
-cp "$virtMnt\$oraUnq\init${oraUnq}.ora.master" $initfile
+Copy-Item "$virtMnt\$oraUnq\init${oraUnq}.ora.master" $initfile
 
 log "Copying init${oraUnq}.ora.master file to $initfile FINISHED"
 
@@ -66,7 +66,7 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
 log "[crt_sp_file] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
@@ -97,7 +97,7 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[add_temp_file] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
@@ -113,7 +113,7 @@ log "Create spfile, $virtMnt\$oraUnq\spfile${oraUnq}.ora from pfile, $virtMnt\$o
 
 $sqlQuery=@"
 WHENEVER SQLERROR EXIT SQL.SQLCODE
-create spfile='$virtMnt\$oraUnq\spfile${oraUnq}.ora' from pfile='$virtMnt\$oraUnq\init${oraUnq}.ora.master'
+create spfile='$virtMnt\$oraUnq\spfile${oraUnq}.ora' from pfile='$virtMnt\$oraUnq\init${oraUnq}.ora.master';
 exit
 "@
 
@@ -124,21 +124,32 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
 log "[crt_sp_file] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
 log "Create spfile, $virtMnt\$oraUnq\spfile${oraUnq}.ora from pfile, $virtMnt\$oraUnq\init${oraUnq}.ora.master FINISHED"
 
-######### VDB startup ######
+log "Copying spfile $virtMnt\$oraUnq\spfile${oraUnq}.ora to Oracle home $oracleHome\database\ STARTED"
 
-startup
+if ((Test-Path "$oracleHome\database\spfile${oraUnq}.ora")) {
+	Move-Item "$oracleHome\database\spfile${oraUnq}.ora" "$oracleHome\database\spfile${oraUnq}.ora.bak" -force	
+}
+
+Copy-Item "$virtMnt\$oraUnq\spfile${oraUnq}.ora" "$oracleHome\database\spfile${oraUnq}.ora"
+
+log "Copying spfile $virtMnt\$oraUnq\spfile${oraUnq}.ora to Oracle home $oracleHome\database\ FINISHED"
+
+######### VDB restart with spfile ######
+
+stop_OraService ${oraUnq} "srvc,inst" "immediate"
+start_OraService ${oraUnq} "srvc,inst"
 
 ######### control file create #####
 
 log "Moving ccf.sql file to ccf.sql.orig STARTED"
 
-mv "$virtMnt\$oraUnq\ccf.sql" "$virtMnt\$oraUnq\ccf.sql.orig"
+Move-Item "$virtMnt\$oraUnq\ccf.sql" "$virtMnt\$oraUnq\ccf.sql.orig"
 
 log "Moving ccf.sql file to ccf.sql.original FINISHED"
 
