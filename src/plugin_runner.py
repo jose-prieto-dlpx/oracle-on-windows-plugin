@@ -3,7 +3,7 @@
 #
 
 from dlpx.virtualization.platform import Mount, MountSpecification, Plugin
-from operations import discovery, restore, provision, postSnapshot, enable, disable, start, stop, status
+from operations import discovery, restore, provision, postSnapshot, enable, disable, start, stop, status, cleanup 
 
 from generated.definitions import (
     RepositoryDefinition,
@@ -149,3 +149,15 @@ def virtual_status(virtual_source, repository, source_config):
     virtual_connection = virtual_source.connection
     parameters = virtual_source.parameters
     return status.vdb_status(virtual_connection, parameters, repository, source_config)
+
+@plugin.virtual.worker()
+def worker(staged_source, repository, source_config):
+    staged_connection = staged_source.staged_connection
+    parameters = staged_source.parameters
+    return status.vdb_status(staged_connection, parameters, repository, source_config)
+
+# Code commented out because this method is only available in vSDK 4.0+
+# @plugin.virtual.cleanup()
+# def cleanup(virtual_source, repository, source_config):
+#     virtual_connection = virtual_source.connection    
+#     return cleanup.vdb_cleanup(virtual_connection, repository, source_config)

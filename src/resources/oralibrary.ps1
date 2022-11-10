@@ -578,7 +578,7 @@ SELECT CASE WHEN BANNER like '%Standard%' THEN 'STANDARD'
             WHEN BANNER like '%Enterprise%' THEN 'ENTERPRISE'
        ELSE 'OTHER' END as version
 FROM v`$version
-WHERE rownum < 2
+WHERE rownum < 2;
 exit;
 "@
   

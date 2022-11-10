@@ -18,7 +18,7 @@ $oraStg = $env:ORA_STG
 $oraBase = $env:ORACLE_BASE
 $oracleHome = $env:ORACLE_HOME
 $DBlogDir = ${delphixToolkitPath}+"\logs\"+${oraUnq}
-$deletetempfile = "$DBlogDir\${oraUnq}.dltemp"
+$addtempfile = "$DBlogDir\${oraUnq}.addtemp"
 $nid_log = "$DBlogDir\${oraUnq}_nid.log"
 $scriptDir = "${delphixToolkitPath}\scripts"
 
@@ -82,26 +82,47 @@ db_open_resetlogs
 
 ######### add temp file ########
 
-log "VDB add temp file STARTED"
+log "Adding back temporary files to VDB"
 
-$sqlQuery = @"
-    WHENEVER SQLERROR EXIT SQL.SQLCODE
-		ALTER TABLESPACE TEMP ADD TEMPFILE '$virtMnt\$oraUnq\temp01.dbf' size 1000M reuse;
-		exit
+$PSDefaultParameterValues['*:Encoding'] = 'ascii'
+
+$sqlQuery=@"
+WHENEVER SQLERROR EXIT SQL.SQLCODE
+set linesize 200 heading off feedback off
+col cmd format a200
+select 'alter tablespace '||tablespace_name||' add tempfile ''$virtMnt\$oraUnq\'||tablespace_name||'_01.dbf'' size 1000M reuse autoextend on;' as cmd 
+from dba_tablespaces 
+where contents='TEMPORARY';
+exit
 "@
 
-log "[SQL Query - add_temp_file] $sqlQuery"
+log "[SQL Query - add_temp_files] $sqlQuery"
 
-$result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
+$result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
 
-log "[add_temp_file] $result"
+log "[add_temp_files] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+    Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
-log "VDB add temp file FINISHED"
+Write-Output $result > $addtempfile
+Write-Output "exit" >> $addtempfile
+
+## remove empty lines
+remove_empty_lines $addtempfile
+
+#### Executing add temp files
+
+log "Executing add temp files script, $addtempfile STARTED"
+
+$add_temp =  . $Env:ORACLE_HOME\bin\sqlplus.exe "/ as sysdba" "@$addtempfile"
+
+log "[SQL- add_temp_files] $add_temp"
+
+log "Executing add temp files script, $addtempfile FINISHED"
+
 
 ######### VDB shutdown ######
 

@@ -55,10 +55,10 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
 log "[SQL - vdb_status] $result"
 
 if (($result -eq "READ WRITE") -and ($srvc_status -eq "Running")) {
-  echo "ACTIVE"
+  Write-Output "ACTIVE"
 }
 else {
-   echo "INACTIVE"
+   Write-Output "INACTIVE"
 }
 
 exit 0

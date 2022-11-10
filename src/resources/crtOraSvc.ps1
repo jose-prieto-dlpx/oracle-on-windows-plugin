@@ -14,6 +14,7 @@ $oraPwd = $env:ORACLE_PASSWD
 $oraBase = $env:ORACLE_BASE
 $oraUnq = $env:ORA_UNQ_NAME
 $scriptDir = "${delphixToolkitPath}\scripts"
+$toolkitWF = $env:DLPX_TOOLKIT_WORKFLOW
 
 . $scriptDir\delphixLibrary.ps1
 . $scriptDir\oracleLibrary.ps1
@@ -30,6 +31,11 @@ log "ORACLE_SID: $oraUnq"
 
 log "Creation of Oracle Service, $oraUnq STARTED"
 
-create_OraService $oraUnq $oraUser $oraPwd
+if ($toolkitWF -eq "initial_sync") {
+    create_OraService $oraInstName $oraUser $oraPwd
+}
+else {
+    create_OraService $oraUnq $oraUser $oraPwd
+}
 
 log "Creation of Oracle Service, $oraUnq FINISHED"
