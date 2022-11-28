@@ -268,3 +268,7 @@ echo "}" >> $recovercmdfile
 echo "EXIT" >> $recovercmdfile
 
 log "Creating Recovery Script, $recovercmdfile FINISHED"
+
+log "rebooting instance"
+shutdown "immediate"
+startup_mount

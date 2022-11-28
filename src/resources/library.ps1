@@ -40,6 +40,7 @@ function log {
       $die
    )
 
+   $timestamp = "$(Get-Date -Format 'MM-dd-yy HH:mm:ss')"
    $Line = "[$timestamp][DEBUG][$dlpxToolkitWorkflow][${programName}]:[$logMessage]"
    Add-content $debugLog -value $Line
    if ($die) {
