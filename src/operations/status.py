@@ -2,7 +2,7 @@
 # Copyright (c) 2021 by Delphix. All rights reserved.
 #
 
-from utils import setupLogger, executeScript
+from utils import setupLogger, executeScript, mask_object
 from dlpx.virtualization.platform import Status
 import json
 
@@ -23,7 +23,8 @@ def vdb_status (virtual_connection,parameters,repository,source_config):
             "ORA_DB_NAME" : parameters.db_name
            }
 
-    logger.debug("Virtual Parameters: {}".format(parameters))
+    masked_params = mask_object.mask_object(parameters,['password'])
+    logger.debug("Virtual Parameters: {}".format(masked_params))
     logger.debug("Virtual Repository Parameters: {}".format(repository))
     logger.debug("Source Config Parameters: {}".format(source_config))
 
@@ -53,8 +54,9 @@ def ds_status (source_connection,parameters,repository,source_config):
             "ORACLE_DB_IDENTITY_NAME" : source_config.db_identity_name,
             "ORA_UNQ_NAME" : source_config.db_uniq_name
            }
-
-    logger.debug("Staged Parameters: {}".format(parameters))
+    
+    masked_params = mask_object.mask_object(parameters,['password'])
+    logger.debug("Staged Parameters: {}".format(masked_params))
     logger.debug("Repository Parameters: {}".format(repository))
     logger.debug("Source Config Parameters: {}".format(source_config))
 

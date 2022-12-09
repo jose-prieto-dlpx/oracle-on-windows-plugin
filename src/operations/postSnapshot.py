@@ -2,7 +2,7 @@
 # Copyright (c) 2021 by Delphix. All rights reserved.
 #
 
-from utils import setupLogger, executeScript
+from utils import setupLogger, executeScript, mask_object
 from generated.definitions import RepositoryDefinition, SourceConfigDefinition, SnapshotDefinition
 import json
 
@@ -24,7 +24,8 @@ def _make_ds_postsnapshot (source_connection,parameters,repository,source_config
             "ORA_UNQ_NAME" : source_config.db_uniq_name
            }
 
-    logger.debug("Staged Parameters: {}".format(parameters))
+    masked_params = mask_object.mask_object(parameters,['password'])
+    logger.debug("Staged Parameters: {}".format(masked_params))
     logger.debug("Repository Parameters: {}".format(repository))
     logger.debug("Source Config Parameters: {}".format(source_config))
     logger.debug("Snapshot Parameters: {}".format(snapshot_parameters))
@@ -64,7 +65,8 @@ def _make_vdb_postsnapshot (source_connection,parameters,repository,source_confi
             "ORA_UNQ_NAME" : source_config.db_uniq_name
            }
 
-    logger.debug("Staged Parameters: {}".format(parameters))
+    masked_params = mask_object.mask_object(parameters,['password'])
+    logger.debug("Staged Parameters: {}".format(masked_params))
     logger.debug("Repository Parameters: {}".format(repository))
     logger.debug("Source Config Parameters: {}".format(source_config))
 

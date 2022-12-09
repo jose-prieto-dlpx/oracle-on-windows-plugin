@@ -2,7 +2,7 @@
 # Copyright (c) 2021 by Delphix. All rights reserved.
 #
 
-from utils import setupLogger, executeScript
+from utils import setupLogger, executeScript, mask_object
 from generated.definitions import RepositoryDefinition, SourceConfigDefinition
 import json
 
@@ -31,7 +31,9 @@ def initial_sync (source_connection,parameters,repository,source_config):
             "RMAN_CHANNELS" : str(parameters.rman_channels)
            }
 
-    logger.debug("Staged Parameters: {}".format(parameters))
+    masked_params = mask_object.mask_object(parameters,['password'])
+    logger.debug("Staged Parameters: {}".format(masked_params))
+
     logger.debug("Repository Parameters: {}".format(repository))
     logger.debug("Source Config Parameters: {}".format(source_config))
 
@@ -83,7 +85,8 @@ def incremental_sync (source_connection,parameters,repository,source_config):
             "ORA_UNQ_NAME" : source_config.db_uniq_name
            }
 
-    logger.debug("Staged Parameters: {}".format(parameters))
+    masked_params = mask_object.mask_object(parameters,['password'])
+    logger.debug("Staged Parameters: {}".format(masked_params))
     logger.debug("Repository Parameters: {}".format(repository))
 
     ds_inc_find_bkp =  executeScript.execute_powershell(source_connection,'ds_inc_find_bkp.ps1',env)
