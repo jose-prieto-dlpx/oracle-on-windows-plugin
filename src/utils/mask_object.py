@@ -6,15 +6,18 @@
 ###########################################################
 
 from utils import setupLogger
+from copy import deepcopy
 
 def mask_object(obj, param_list, mask_value = 'MASKED VALUE'):
    logger = setupLogger._setup_logger(__name__)
 
+   work_obj=deepcopy(obj)
+
    for attribute in param_list:
-      if hasattr(obj,attribute):
-         setattr(obj, attribute, mask_value)
+      if hasattr(work_obj,attribute):
+         setattr(work_obj, attribute, mask_value)
          logger.debug("Masking attribute: {}".format(attribute))
       else:
          logger.debug("Masking attribute {} not done. Attribute does not exist.".format(attribute))
       
-   return obj
+   return work_obj
