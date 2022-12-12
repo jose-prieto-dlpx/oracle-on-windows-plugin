@@ -150,7 +150,6 @@ remove_empty_lines "$stgMnt\$oraSrc\new_ctl_bkp_endscn.txt"
 
 log "Creating Restore Scripts, $restorecmdfile STARTED"
 
-Write-Output "crosscheck backup;" > $restorecmdfile
 Write-Output "catalog start with '$oraBkpLoc\' noprompt;" >> $restorecmdfile
 Write-Output "crosscheck backup;" >> $restorecmdfile
 Write-Output "set echo on" >> $restorecmdfile

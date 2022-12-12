@@ -214,7 +214,6 @@ log "Compare Pre and Post Datafiles, $oraUnq FINISHED"
 
 log "Creating Restore Scripts, $restorecmdfile STARTED"
 
-Write-Output "crosscheck backup;" > $restorecmdfile
 Write-Output "catalog start with '$oraBkpLoc\' noprompt;" >> $restorecmdfile
 Write-Output "crosscheck backup;" >> $restorecmdfile
 Write-Output "set echo on" >> $restorecmdfile
