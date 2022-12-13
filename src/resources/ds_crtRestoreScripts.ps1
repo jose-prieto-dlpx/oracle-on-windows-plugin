@@ -60,6 +60,7 @@ log "[DBLogDir Already Exists] $DBlogDir"
 $PSDefaultParameterValues['*:Encoding'] = 'ascii'
 
 
+log "[Initiating RMAN connection check] - Enabling RMAN views"
  #### there are two reasons for connecting to RMAN
  #### 1) v$rman views might not be present in a mounted database unless you first connect to it with RMAN
 
@@ -67,6 +68,7 @@ $PSDefaultParameterValues['*:Encoding'] = 'ascii'
 
  $result = $testRman | . $Env:ORACLE_HOME\bin\rman.exe target /
 
+ log "[Initiating RMAN connection check] - Cleaning SBT backups"
  #### 2) the control file might have some SBT backups in its catalog, which will cause error during restore
  $testRman =@"
  allocate channel for maintenance device type sbt parms 'SBT_LIBRARY=oracle.disksbt, ENV=(BACKUP_DIR=c:\tmp)';
@@ -150,7 +152,7 @@ remove_empty_lines "$stgMnt\$oraSrc\new_ctl_bkp_endscn.txt"
 
 log "Creating Restore Scripts, $restorecmdfile STARTED"
 
-Write-Output "catalog start with '$oraBkpLoc\' noprompt;" >> $restorecmdfile
+Write-Output "catalog start with '$oraBkpLoc\' noprompt;" > $restorecmdfile
 Write-Output "crosscheck backup;" >> $restorecmdfile
 Write-Output "set echo on" >> $restorecmdfile
 Write-Output "RUN" >> $restorecmdfile
@@ -187,8 +189,6 @@ Write-Output "RESTORE DATABASE;" >> $restorecmdfile
 Write-Output "SWITCH DATAFILE ALL;" >> $restorecmdfile
 for ($i=1; $i -le $rmanChannels; $i=$i+1)
 {Write-Output "RELEASE CHANNEL T${i};" >> $restorecmdfile}
-#Write-Output "RELEASE CHANNEL T1;" >> $restorecmdfile
-#Write-Output "RELEASE CHANNEL T2;" >> $restorecmdfile
 Write-Output "}" >> $restorecmdfile
 Write-Output "EXIT" >> $restorecmdfile
 
