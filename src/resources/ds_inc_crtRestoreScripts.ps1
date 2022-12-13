@@ -58,13 +58,15 @@ log "[DBLogDir Already Exists] $DBlogDir"
 # set powershell default encoding to UTF8
 $PSDefaultParameterValues['*:Encoding'] = 'ascii'
 
- #### there are two reasons for connecting to RMAN
+log "[Initiating RMAN connection check] - Enabling RMAN views" 
+#### there are two reasons for connecting to RMAN
  #### 1) v$rman views might not be present in a mounted database unless you first connect to it with RMAN
 
  $testRman ='exit;' 
 
  $result = $testRman | . $Env:ORACLE_HOME\bin\rman.exe target /
 
+ log "[Initiating RMAN connection check] - Cleaning SBT backups"
  #### 2) the control file might have some SBT backups in its catalog, which will cause error during restore
  $testRman =@"
  allocate channel for maintenance device type sbt parms 'SBT_LIBRARY=oracle.disksbt, ENV=(BACKUP_DIR=c:\tmp)';
@@ -214,7 +216,7 @@ log "Compare Pre and Post Datafiles, $oraUnq FINISHED"
 
 log "Creating Restore Scripts, $restorecmdfile STARTED"
 
-Write-Output "catalog start with '$oraBkpLoc\' noprompt;" >> $restorecmdfile
+Write-Output "catalog start with '$oraBkpLoc\' noprompt;" > $restorecmdfile
 Write-Output "crosscheck backup;" >> $restorecmdfile
 Write-Output "set echo on" >> $restorecmdfile
 Write-Output "RUN" >> $restorecmdfile
