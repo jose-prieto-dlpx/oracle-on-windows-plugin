@@ -56,7 +56,8 @@ $sqlQuery=@"
 WHENEVER SQLERROR EXIT SQL.SQLCODE
 set linesize 500 heading off feedback off
 col file_name format a200
-select 'alter database rename file ''' ||NAME|| ''' to '||'''$virtMnt'||'\$oraUnq\'||SUBSTR(NAME,(INSTR(NAME,'\',-1)+1),LENGTH(NAME))||''';' filename from v`$datafile;
+select 'alter database rename file ''' ||name|| ''' to '||'''$virtMnt'||'\$oraUnq\'||SUBSTR(NAME,(INSTR(REPLACE(NAME,'/','\'),'\',-1)+1),LENGTH(NAME))||''';' filename from v`$datafile;
+
 exit
 "@
 
@@ -77,7 +78,7 @@ $sqlQuery=@"
 WHENEVER SQLERROR EXIT SQL.SQLCODE
 set linesize 500 heading off feedback off
 col file_name format a200
-select 'alter database rename file ''' ||member|| ''' to '||'''$virtMnt'||'\$oraUnq\'||SUBSTR(member,(INSTR(member,'\',-1)+1),LENGTH(member))||''';' member from v`$logfile;
+select 'alter database rename file ''' ||member|| ''' to '||'''$virtMnt'||'\$oraUnq\'||SUBSTR(member,(INSTR(REPLACE(member,'/','\'),'\',-1)+1),LENGTH(member))||''';' member from v`$logfile;
 exit
 "@
 
@@ -98,7 +99,7 @@ $sqlQuery=@"
 WHENEVER SQLERROR EXIT SQL.SQLCODE
 set linesize 500 heading off feedback off
 col file_name format a200
-select 'alter database rename file ''' ||NAME|| ''' to '||'''$virtMnt'||'\$oraUnq\'||SUBSTR(NAME,(INSTR(NAME,'\',-1)+1),LENGTH(NAME))||''';' name from v`$tempfile;
+select 'alter database rename file ''' ||name|| ''' to '||'''$virtMnt'||'\$oraUnq\'||SUBSTR(name,(INSTR(REPLACE(NAME,'/','\'),'\',-1)+1),LENGTH(name))||''';' name from v`$tempfile;
 exit
 "@
 

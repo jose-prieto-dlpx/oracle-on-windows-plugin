@@ -70,6 +70,9 @@ extract_string "STARTUP NOMOUNT" ";" $ccf_file_old > $ccf_file_new
 (Get-Content -path $ccf_file_new -Raw) -replace 'REUSE DATABASE','REUSE SET DATABASE' | Set-Content -Path $ccf_file_new
 (Get-Content -path $ccf_file_new -Raw) -replace 'NORESETLOGS','RESETLOGS' | Set-Content -Path $ccf_file_new
 (Get-Content -path $ccf_file_new -Raw) -replace $oraVDBSrc, $oraUnq | Set-Content -Path $ccf_file_new
+# Using a regular expression to replace any existing paths with the new VDB virtMnt path maintaining the original redo and datafiles
+log "Chaging database file path to point to $virtMnt\$oraUnq"
+(Get-Content -path $ccf_file_new -Raw) -replace "\'(.:.*\\)(.*)\'","'$virtMnt\$oraUnq\`$2'" | Set-Content -Path $ccf_file_new
 (Get-Content -path $ccf_file_new -Raw) -replace '-- STANDBY LOGFILE','' | Set-Content -Path $ccf_file_new
 
 # Adding line feeds after each ',' to prevent SQL*Plus error SP2-0027: Input is too long if there are a high number of datafiles

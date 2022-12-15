@@ -423,9 +423,9 @@ $importPath = $args[2]
 
 log "Extract content from file, $importPath STARTED"
 
-$file = Get-Content $importPath
+$file = Get-Content $importPath -Raw
 
-$pattern = "$firstString(.*?)$secondString"
+$pattern = "(?s)$firstString(.*?)$secondString"
 
 $result = [regex]::Match($file,$pattern).Groups[1].Value
 
