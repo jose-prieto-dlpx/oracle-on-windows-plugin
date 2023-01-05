@@ -578,8 +578,8 @@ SELECT CASE WHEN BANNER like '%Standard%' THEN 'STANDARD'
             WHEN BANNER like '%Enterprise%' THEN 'ENTERPRISE'
        ELSE 'OTHER' END as version
 FROM v`$version
-WHERE rownum < 2
-exit;
+WHERE rownum < 2;
+exit
 "@
   
 log "[SQL Query - get_db_version] $sqlQuery"
