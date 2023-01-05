@@ -423,9 +423,9 @@ $importPath = $args[2]
 
 log "Extract content from file, $importPath STARTED"
 
-$file = Get-Content $importPath
+$file = Get-Content $importPath -Raw
 
-$pattern = "$firstString(.*?)$secondString"
+$pattern = "(?s)$firstString(.*?)$secondString"
 
 $result = [regex]::Match($file,$pattern).Groups[1].Value
 
@@ -579,7 +579,7 @@ SELECT CASE WHEN BANNER like '%Standard%' THEN 'STANDARD'
        ELSE 'OTHER' END as version
 FROM v`$version
 WHERE rownum < 2;
-exit;
+exit
 "@
   
 log "[SQL Query - get_db_version] $sqlQuery"

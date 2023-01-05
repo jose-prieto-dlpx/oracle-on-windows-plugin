@@ -18,7 +18,7 @@ $scriptDir = "${delphixToolkitPath}\scripts"
 
 . $scriptDir\delphixLibrary.ps1
 
-$audit_dest="$oraBase\admin\$oraUnq\adump'"
+$audit_dest="$oraBase\admin\$oraUnq\adump"
 
 log "Creating Directories, $audit_dest STARTED"
 

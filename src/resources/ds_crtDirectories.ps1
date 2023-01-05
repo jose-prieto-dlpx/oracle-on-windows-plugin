@@ -20,7 +20,7 @@ $scriptDir = "${delphixToolkitPath}\scripts"
 . $scriptDir\delphixLibrary.ps1
 
 $fra="$stgMnt\$oraSrc\flash_recovery_area"
-$audit_dest="$oraBase\admin\$oraSrc\adump'"
+$audit_dest="$oraBase\admin\$oraSrc\adump"
 
 log "Creating Directories, $fra , $audit_dest STARTED"
 

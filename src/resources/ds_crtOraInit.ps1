@@ -46,7 +46,7 @@ $PSDefaultParameterValues['*:Encoding'] = 'ascii'
 
 log "Creation of base init.ora $initfile STARTED"
 
-echo "*.audit_file_dest='$oraBase\admin\$oraSrc\adump'" > ${initfile}
+echo "*.audit_file_dest='$oraBase\admin\$oraSrc\adump" > ${initfile}
 echo "*.audit_trail='db'" >> ${initfile}
 echo "*.control_files='$stgMnt\$oraSrc\control01.ctl'" >> ${initfile}
 echo "*.db_block_size=8192" >> ${initfile}

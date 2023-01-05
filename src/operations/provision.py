@@ -2,7 +2,7 @@
 # Copyright (c) 2021 by Delphix. All rights reserved.
 #
 
-from utils import setupLogger, executeScript
+from utils import setupLogger, executeScript, mask_object
 from generated.definitions import RepositoryDefinition, SourceConfigDefinition
 import json
 
@@ -31,7 +31,9 @@ def initial_provision (virtual_connection,parameters,snapshot,repository):
             "ORA_VDB_SRC" : snapshot.ora_unq
            }
 
-    logger.debug("Virtual Parameters: {}".format(parameters))
+    masked_params = mask_object.mask_object(parameters,['password'])
+    logger.debug("Virtual Parameters: {}".format(masked_params))
+
     logger.debug("Virtual Repository Parameters: {}".format(repository))
     logger.debug("Snapshot Parameters: {}".format(snapshot))
 

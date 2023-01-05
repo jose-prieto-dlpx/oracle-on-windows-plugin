@@ -10,7 +10,6 @@ $delphixToolkitPath = $env:DLPX_TOOLKIT_PATH
 $oracleHome = $env:ORACLE_HOME
 $oraInstName = $env:ORACLE_INST
 $oraUser = $env:ORACLE_USER
-$oraPwd = $env:ORACLE_PASSWD
 $oraBase = $env:ORACLE_BASE
 $oraBkpLoc = $env:ORACLE_BKP_LOC
 $stgMnt = $env:STG_MNT_PATH
@@ -50,7 +49,7 @@ log "RECOVERY_FILE: $recovercmdfile"
 #### Creating DB Log Directory
 
 if(!(Test-Path $DBlogDir)) {
-      md $DBlogDir
+      mkdir $DBlogDir
 log "[Creating DBLogDir] md $DBlogDir"
 }
 else {
@@ -61,6 +60,7 @@ log "[DBLogDir Already Exists] $DBlogDir"
 $PSDefaultParameterValues['*:Encoding'] = 'ascii'
 
 
+log "[Initiating RMAN connection check] - Enabling RMAN views"
  #### there are two reasons for connecting to RMAN
  #### 1) v$rman views might not be present in a mounted database unless you first connect to it with RMAN
 
@@ -68,6 +68,7 @@ $PSDefaultParameterValues['*:Encoding'] = 'ascii'
 
  $result = $testRman | . $Env:ORACLE_HOME\bin\rman.exe target /
 
+ log "[Initiating RMAN connection check] - Cleaning SBT backups"
  #### 2) the control file might have some SBT backups in its catalog, which will cause error during restore
  $testRman =@"
  allocate channel for maintenance device type sbt parms 'SBT_LIBRARY=oracle.disksbt, ENV=(BACKUP_DIR=c:\tmp)';
@@ -100,16 +101,16 @@ $end_time = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba
 log "[end_time] $end_time"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
 ##### move existing to last
 if (Test-Path $stgMnt\$oraSrc\new_ctl_bkp_endtime.txt) {
-mv $stgMnt\$oraSrc\new_ctl_bkp_endtime.txt $stgMnt\$oraSrc\last_ctl_bkp_endtime.txt -force
+Move-Item $stgMnt\$oraSrc\new_ctl_bkp_endtime.txt $stgMnt\$oraSrc\last_ctl_bkp_endtime.txt -force
 }
 
-echo $end_time > "$stgMnt\$oraSrc\new_ctl_bkp_endtime.txt"
+Write-Output $end_time > "$stgMnt\$oraSrc\new_ctl_bkp_endtime.txt"
 
 remove_empty_lines "$stgMnt\$oraSrc\new_ctl_bkp_endtime.txt"
 
@@ -134,16 +135,16 @@ $end_scn = $end_scn -replace '\s',''
 log "[end_scn] $end_scn"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
 ##### move existing to last
 if (Test-Path $stgMnt\$oraSrc\new_ctl_bkp_endscn.txt) {
-mv $stgMnt\$oraSrc\new_ctl_bkp_endscn.txt $stgMnt\$oraSrc\last_ctl_bkp_endscn.txt -force
+Move-Item $stgMnt\$oraSrc\new_ctl_bkp_endscn.txt $stgMnt\$oraSrc\last_ctl_bkp_endscn.txt -force
 }
 
-echo $end_scn > "$stgMnt\$oraSrc\new_ctl_bkp_endscn.txt"
+Write-Output $end_scn > "$stgMnt\$oraSrc\new_ctl_bkp_endscn.txt"
 
 remove_empty_lines "$stgMnt\$oraSrc\new_ctl_bkp_endscn.txt"
 
@@ -151,17 +152,13 @@ remove_empty_lines "$stgMnt\$oraSrc\new_ctl_bkp_endscn.txt"
 
 log "Creating Restore Scripts, $restorecmdfile STARTED"
 
-echo "crosscheck backup;" > $restorecmdfile
-echo "delete force noprompt expired backup;" >> $restorecmdfile
-echo "catalog start with '$oraBkpLoc\' noprompt;" >> $restorecmdfile
-echo "crosscheck backup;" >> $restorecmdfile
-echo "set echo on" >> $restorecmdfile
-echo "RUN" >> $restorecmdfile
-echo "{" >> $restorecmdfile
+Write-Output "catalog start with '$oraBkpLoc\' noprompt;" > $restorecmdfile
+Write-Output "crosscheck backup;" >> $restorecmdfile
+Write-Output "set echo on" >> $restorecmdfile
+Write-Output "RUN" >> $restorecmdfile
+Write-Output "{" >> $restorecmdfile
 for ($i=1; $i -le $rmanChannels; $i=$i+1)
-{echo "ALLOCATE CHANNEL T${i} DEVICE TYPE disk;" >> $restorecmdfile}
-#echo "ALLOCATE CHANNEL T1 DEVICE TYPE disk;" >> $restorecmdfile
-#echo "ALLOCATE CHANNEL T2 DEVICE TYPE disk;" >> $restorecmdfile
+{Write-Output "ALLOCATE CHANNEL T${i} DEVICE TYPE disk;" >> $restorecmdfile}
 
 ### rename datafiles
 
@@ -180,22 +177,20 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
 log "[rename_datafiles] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
-echo $result >> $restorecmdfile
+Write-Output $result >> $restorecmdfile
 
-echo "SET UNTIL SCN $end_scn;" >> $restorecmdfile
+Write-Output "SET UNTIL SCN $end_scn;" >> $restorecmdfile
 
-echo "RESTORE DATABASE;" >> $restorecmdfile
-echo "SWITCH DATAFILE ALL;" >> $restorecmdfile
+Write-Output "RESTORE DATABASE;" >> $restorecmdfile
+Write-Output "SWITCH DATAFILE ALL;" >> $restorecmdfile
 for ($i=1; $i -le $rmanChannels; $i=$i+1)
-{echo "RELEASE CHANNEL T${i};" >> $restorecmdfile}
-#echo "RELEASE CHANNEL T1;" >> $restorecmdfile
-#echo "RELEASE CHANNEL T2;" >> $restorecmdfile
-echo "}" >> $restorecmdfile
-echo "EXIT" >> $restorecmdfile
+{Write-Output "RELEASE CHANNEL T${i};" >> $restorecmdfile}
+Write-Output "}" >> $restorecmdfile
+Write-Output "EXIT" >> $restorecmdfile
 
 ## remove empty lines
 remove_empty_lines $restorecmdfile
@@ -217,11 +212,11 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
 log "[rename_logfiles] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
-echo $result > $renamelogtempfile
+Write-Output $result > $renamelogtempfile
 
  $sqlQuery=@"
  WHENEVER SQLERROR EXIT SQL.SQLCODE
@@ -238,12 +233,12 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
 log "[rename_tempfiles] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
-echo $result >> $renamelogtempfile
-echo "exit" >> $renamelogtempfile
+Write-Output $result >> $renamelogtempfile
+Write-Output "exit" >> $renamelogtempfile
 
 ## remove empty lines
 remove_empty_lines $renamelogtempfile
@@ -254,17 +249,21 @@ log "Creating Restore Scripts, $restorecmdfile FINISHED"
 
 log "Creating Recovery Script, $recovercmdfile STARTED"
 
-#echo "catalog start with '$oraBkpLoc' noprompt;" > $recovercmdfile
-echo "set echo on" > $recovercmdfile
-echo "RUN" >> $recovercmdfile
-echo "{" >> $recovercmdfile
+#Write-Output "catalog start with '$oraBkpLoc' noprompt;" > $recovercmdfile
+Write-Output "set echo on" > $recovercmdfile
+Write-Output "RUN" >> $recovercmdfile
+Write-Output "{" >> $recovercmdfile
 for ($i=1; $i -le $rmanChannels; $i=$i+1)
-{echo "ALLOCATE CHANNEL T${i} DEVICE TYPE disk;" >> $recovercmdfile}
-echo "SET UNTIL SCN $end_scn;" >> $recovercmdfile
-echo "recover database;" >> $recovercmdfile
+{Write-Output "ALLOCATE CHANNEL T${i} DEVICE TYPE disk;" >> $recovercmdfile}
+Write-Output "SET UNTIL SCN $end_scn;" >> $recovercmdfile
+Write-Output "recover database;" >> $recovercmdfile
 for ($i=1; $i -le $rmanChannels; $i=$i+1)
-{echo "RELEASE CHANNEL T${i};" >> $recovercmdfile}
-echo "}" >> $recovercmdfile
-echo "EXIT" >> $recovercmdfile
+{Write-Output "RELEASE CHANNEL T${i};" >> $recovercmdfile}
+Write-Output "}" >> $recovercmdfile
+Write-Output "EXIT" >> $recovercmdfile
 
 log "Creating Recovery Script, $recovercmdfile FINISHED"
+
+log "rebooting instance"
+shutdown "immediate"
+startup_mount
