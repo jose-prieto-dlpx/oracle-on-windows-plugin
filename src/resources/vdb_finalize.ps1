@@ -7,19 +7,15 @@
 
 $programName = 'vdb_finalize.ps1'
 $delphixToolkitPath = $env:DLPX_TOOLKIT_PATH
-$oraInstName = $env:ORACLE_INST
-$oraUser = $env:ORACLE_USER
-$oraPwd = $env:ORACLE_PASSWD
 $oraUnq = $env:ORA_UNQ_NAME
-$oraDBName = $env:ORA_DB_NAME
 $virtMnt = $env:VDB_MNT_PATH
 $oraSrc = $env:ORA_SRC
-$oraStg = $env:ORA_STG
 $oraBase = $env:ORACLE_BASE
 $oracleHome = $env:ORACLE_HOME
 $DBlogDir = ${delphixToolkitPath}+"\logs\"+${oraUnq}
-$deletetempfile = "$DBlogDir\${oraUnq}.dltemp"
-$nid_log = "$DBlogDir\${oraUnq}_nid.log"
+$addtempfiles = "$DBlogDir\${oraUnq}_addtmpfiles.sql"
+
+
 $scriptDir = "${delphixToolkitPath}\scripts"
 
 . $scriptDir\delphixLibrary.ps1
@@ -80,28 +76,48 @@ start_mount_pfile $initfile
 
 db_open_resetlogs
 
-######### add temp file ########
+######### add temp files ########
 
-log "VDB add temp file STARTED"
+log "VDB add temp files STARTED"
+
+Write-Output "WHENEVER SQLERROR EXIT SQL.SQLCODE" > $addtempfiles
 
 $sqlQuery = @"
-    WHENEVER SQLERROR EXIT SQL.SQLCODE
-		ALTER TABLESPACE TEMP ADD TEMPFILE '$virtMnt\$oraUnq\temp01.dbf' size 1000M reuse;
-		exit
+    whenever sqlerror exit sql.sqlcode
+	set linesize 500 heading off feedback off pages 0
+	col sqlcode format a500	
+	select 'alter tablespace '||tsnam||' add tempfile ''$virtmnt\$oraunq\'||tsnam||'_01.dbf'' size 1000m reuse;' as sqlcode from x`$kccts where bitand(tsflg, 1+2) = 1 and tstsn <> -1 order by 1;
+	exit
 "@
 
-log "[SQL Query - add_temp_file] $sqlQuery"
+log "[SQL Query - add_temp_file_script] $sqlQuery"
 
-$result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
+$result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
 
-log "[add_temp_file] $result"
-
+log "[add_temp_file_script] $result"
 if ($LASTEXITCODE -ne 0){
 Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
-log "VDB add temp file FINISHED"
+
+Write-Output $result >> $addtempfiles
+Write-Output exit >> $addtempfiles
+
+remove_empty_lines $addtempfiles
+
+log "Executing add temp files script, $addtempfiles STARTED"
+
+$add_temp_files =  . $Env:ORACLE_HOME\bin\sqlplus.exe "/ as sysdba" "@$addtempfiles"
+
+log "[SQL- add_temp_files] $add_temp_files"
+if ($LASTEXITCODE -ne 0){
+	Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+	exit 1
+	}
+	
+
+log "VDB add temp files FINISHED"
 
 ######### VDB shutdown ######
 

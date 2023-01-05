@@ -40,11 +40,27 @@ $rman_restore = rman target / cmdfile="'$restorecmdfile'"
 
 log "[RMAN- rman_restore] $rman_restore"
 
+$error_string=$rman_restore | select-string -Pattern "RMAN-[0-9[0-9][0-9][0-9][0-9]"
+
+if ($error_string) { 
+    log "RMAN restore failed with $error_string"
+    exit 1
+} 
+
+
 ##### recover database
 
 $rman_recover = rman target / cmdfile="'$recovercmdfile'"
 
 log "[RMAN- rman_recover] $rman_recover"
+
+$error_string=$rman_recover | select-string -Pattern "RMAN-[0-9[0-9][0-9][0-9][0-9]"
+
+if ($error_string) { 
+    log "RMAN recover failed with $error_string"
+    exit 1
+} 
+
 
 #### disable BCT
 
@@ -55,6 +71,12 @@ disable_bct
 $rename_files = . $Env:ORACLE_HOME\bin\sqlplus.exe "/ as sysdba" "@$renamelogtempfile"
 
 log "[SQL- rename_files] $rename_files"
+
+if ($LASTEXITCODE -ne 0){
+    log "Rename files action failed with ORA-$LASTEXITCODE"
+    exit 1
+    }
+    
 
 $versiondb = get_db_version
 
