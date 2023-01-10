@@ -36,6 +36,9 @@ log "PARENT_VDB: $oraVDBSrc"
 $initfile = "${virtMnt}\${oraUnq}\init${oraUnq}.ora"
 $masterinit = ${initfile}+".master"
 
+$DBlogDir = ${delphixToolkitPath}+"\logs\"+${oraUnq}
+$addtempfiles = "$DBlogDir\${oraUnq}_addtmpfiles.sql"
+
 log "Provision Child VDB, $oraUnq STARTED"
 
 $PSDefaultParameterValues['*:Encoding'] = 'ascii'
@@ -66,10 +69,12 @@ log "Moving ccf.sql file to ccf.sql.old FINISHED"
 log "Create Script for new control file, $ccf_file_new STARTED"
 
 extract_string "STARTUP NOMOUNT" ";" $ccf_file_old > $ccf_file_new
+Write-Output ";" >> $ccf_file_new
 
 (Get-Content -path $ccf_file_new -Raw) -replace 'REUSE DATABASE','REUSE SET DATABASE' | Set-Content -Path $ccf_file_new
 (Get-Content -path $ccf_file_new -Raw) -replace 'NORESETLOGS','RESETLOGS' | Set-Content -Path $ccf_file_new
 (Get-Content -path $ccf_file_new -Raw) -replace $oraVDBSrc, $oraUnq | Set-Content -Path $ccf_file_new
+
 # Using a regular expression to replace any existing paths with the new VDB virtMnt path maintaining the original redo and datafiles
 log "Chaging database file path to point to $virtMnt\$oraUnq"
 (Get-Content -path $ccf_file_new -Raw) -replace "\'(.:.*\\)(.*)\'","'$virtMnt\$oraUnq\`$2'" | Set-Content -Path $ccf_file_new
@@ -77,7 +82,6 @@ log "Chaging database file path to point to $virtMnt\$oraUnq"
 
 # Adding line feeds after each ',' to prevent SQL*Plus error SP2-0027: Input is too long if there are a high number of datafiles
 (Get-Content -path $ccf_file_new -Raw) -replace ',',", `r`n" | Set-Content -Path $ccf_file_new
-Write-Output ";" >> $ccf_file_new
 
 remove_empty_lines $ccf_file_new
 
@@ -159,6 +163,34 @@ log "Media Recovery LogFile, $applyRedoLog"
 ##### open db with reset logs ########
 
 db_open_resetlogs
+
+
+######### add temp files
+
+log "VDB add temp files STARTED"
+
+Write-Output "WHENEVER SQLERROR EXIT SQL.SQLCODE" > $addtempfiles
+
+# Collecting temp files information from the control file
+extract_string "-- Other tempfiles may require adjustment." "-- End of tempfile additions." $ccf_file_old >> $addtempfiles
+(Get-Content -path $addtempfiles -Raw) -replace "\'(.:.*\\)(.*)\'","'$virtMnt\$oraUnq\`$2'" | Set-Content -Path $addtempfiles
+
+Write-Output "exit" >> $addtempfiles
+
+log "Executing add temp files script, $addtempfiles STARTED"
+
+$add_temp_files =  . $Env:ORACLE_HOME\bin\sqlplus.exe "/ as sysdba" "@$addtempfiles"
+
+log "[SQL- add_temp_files] $add_temp_files"
+if ($LASTEXITCODE -ne 0){
+	Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+	exit 1
+	}
+	
+
+log "VDB add temp files FINISHED"
+
+
 
 ######### control file create #####
 

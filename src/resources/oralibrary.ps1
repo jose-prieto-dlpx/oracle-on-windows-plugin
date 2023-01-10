@@ -116,21 +116,17 @@ function create_OraService(){
   log "[Oracle Service, $oracleHome\bin\oradim.exe -new -sid $oraUnq -RUNAS $oraUser/***** -spfile] $crtSvc"
 
   if ($crtSvc -like "*(OS 1073)*"){
-      log "[Oracle Service Already Exists] $oraUnq"
+      log "[Oracle Service Already Exists - recreating it] $oraUnq"
 
-      $svc_status = check_srvc_status $oraUnq
-
-      if ($svc_status -ne "Running"){
-          start_OraService $oraUnq "srvc"
-          exit 0
-        }
-      else {
-        log "[Oracle Service Status, $oraUnq] - $svc_status"
-        exit 0
-      }
+      delete_OraService $oraUnq
+      $crtSvc = . $oracleHome\bin\oradim.exe -new -sid $oraUnq -RUNAS $oraUser/$oraPwd -spfile
+      log "[Oracle Service, $oracleHome\bin\oradim.exe -new -sid $oraUnq -RUNAS $oraUser/***** -spfile] $crtSvc"
+    
   }
 
   $svc_status = check_srvc_status $oraUnq
+
+  log "Service status after creation is $svc_status"
 
   log "Creation of Oracle Service, $oraUnq FINISHED"
 
@@ -455,7 +451,7 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[startup_nomount] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Startup nomount failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
@@ -482,7 +478,7 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[crt_ctrl_file] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Control file creation failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
