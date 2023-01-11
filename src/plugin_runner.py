@@ -3,7 +3,7 @@
 #
 
 from dlpx.virtualization.platform import Mount, MountSpecification, Plugin
-from operations import discovery, restore, provision, postSnapshot, enable, disable, start, stop, status
+from operations import discovery, restore, provision, postSnapshot, preSnapshot, enable, disable, start, stop, status
 
 from generated.definitions import (
     RepositoryDefinition,
@@ -106,6 +106,12 @@ def reconfigure(virtual_source, repository, source_config, snapshot):
     parameters = virtual_source.parameters
     return enable.vdb_enable(virtual_connection, parameters, repository, source_config, snapshot)
 
+@plugin.virtual.pre_snapshot()
+def virtual_pre_snapshot(virtual_source, repository, source_config):
+    virtual_connection = virtual_source.connection
+    parameters = virtual_source.parameters
+
+    return preSnapshot.exec_vdb_presnapshot(virtual_connection,parameters,repository,source_config)  
 
 @plugin.virtual.post_snapshot()
 def virtual_post_snapshot(virtual_source, repository, source_config):

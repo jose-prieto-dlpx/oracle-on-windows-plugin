@@ -54,6 +54,14 @@ $result = $rmanQuery | rman target /
 
 log "[restore_ctrlfile_backup] $result"
 
+$error_string=$result | select-string -Pattern "RMAN-[0-9[0-9][0-9][0-9][0-9]"
+
+if ($error_string) { 
+    log "RMAN restore controlfile failed with $error_string"
+    exit 1
+} 
+
+
 ##### move existing to last
 if (Test-Path $stgMnt\$oraSrc\new_ctl_bkp_piece.txt) {
 mv $stgMnt\$oraSrc\new_ctl_bkp_piece.txt $stgMnt\$oraSrc\last_ctl_bkp_piece.txt -force

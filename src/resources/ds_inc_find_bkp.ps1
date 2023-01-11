@@ -67,6 +67,14 @@ $result = $rmanQuery | rman target /
 
 log "[catalog_bkploc] $result"
 
+$error_string=$result | select-string -Pattern "RMAN-[0-9[0-9][0-9][0-9][0-9]"
+
+if ($error_string) { 
+    log "RMAN catalog command failed with $error_string"
+    exit 1
+} 
+
+
 log "Catalog to backup location, $oraBkpLoc FINISHED"
 
 ## get new control file backup
@@ -175,6 +183,14 @@ log "[RMAN Query - restore_new_ctrlfile_backup] $rmanQuery"
 $result = $rmanQuery | rman target /
 
 log "[restore_new_ctrlfile_backup] $result"
+
+$error_string=$result | select-string -Pattern "RMAN-[0-9[0-9][0-9][0-9][0-9]"
+
+if ($error_string) { 
+    log "RMAN restore controlfile command failed with $error_string"
+    exit 1
+} 
+
 
 log "Restore ControlFile from new backup, $new_ctl_bkp FINISHED"
 

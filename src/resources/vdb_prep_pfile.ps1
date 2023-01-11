@@ -161,5 +161,5 @@ else {
 log "Backup spfile $oracleHome\database\spfile${oraUnq}.ora if exists"
 
 if ((Test-Path "$oracleHome\database\spfile${oraUnq}.ora")) {
-	mv "$oracleHome\database\spfile${oraUnq}.ora" "$oracleHome\database\spfile${oraUnq}.ora.bak"
+	Move-Item "$oracleHome\database\spfile${oraUnq}.ora" "$oracleHome\database\spfile${oraUnq}.ora.bak" -Force
 }

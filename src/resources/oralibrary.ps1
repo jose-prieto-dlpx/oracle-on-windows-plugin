@@ -15,7 +15,7 @@ $file = $args[0]
 
 log "Remove Empty lines, $file STARTED"
 
-(Get-Content $file) | ? {$_.trim() -ne "" } | set-content $file
+(Get-Content $file) | Where-Object {$_.trim() -ne "" } | set-content $file
 $content = [System.IO.File]::ReadAllText($file)
 $content = $content.Trim()
 [System.IO.File]::WriteAllText($file, $content)
@@ -170,8 +170,9 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[startup_mount] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
-exit 1
+  log "Sql Query failed with ORA-$LASTEXITCODE"
+  Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+  exit 1
 }
 
 log "Startup Mount database, $oraUnq FINISHED"
@@ -198,8 +199,9 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[startup] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
-exit 1
+  log "Sql Query failed with ORA-$LASTEXITCODE"
+  Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+  exit 1
 }
 
 log "Startup database, $oraUnq FINISHED"
@@ -271,11 +273,12 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[open_readonly] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
-exit 1
+  log "Sql Query failed with ORA-$LASTEXITCODE"
+  Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+  exit 1
+}
 
 log "Alter DB Open ReadOnly, $oraUnq FINISHED"
-}
 }
 
 function start_mount_pfile(){
@@ -299,8 +302,9 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[start_mount] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
-exit 1
+  log "Sql Query failed with ORA-$LASTEXITCODE"
+  Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+  exit 1
 }
 
 log "Startup Mount, $oraUnq with pFile, $initfile FINISHED"
@@ -325,8 +329,9 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[startup_mount_restrict] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
-exit 1
+  log "Sql Query failed with ORA-$LASTEXITCODE"
+  Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+  exit 1
 }
 
 log "Startup Mount Exclusive Restrict, $oraUnq FINISHED"
@@ -350,8 +355,9 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[disable_flashback] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
-exit 1
+  log "Sql Query failed with ORA-$LASTEXITCODE"
+  Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+  exit 1
 }
 
 log "Disable Flashback on DB, $oraUnq FINISHED"
@@ -375,8 +381,9 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[open_resetlogs] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
-exit 1
+  log "Sql Query failed with ORA-$LASTEXITCODE"
+  Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+  exit 1
 }
 
 log "Open DB, $oraUnq with resetlogs FINISHED"
@@ -403,8 +410,9 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[crt_ctrl_file] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
-exit 1
+  log "Sql Query failed with ORA-$LASTEXITCODE"
+  Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+  exit 1
 }
 
 log "Create Control file, $oraUnq FINISHED"
@@ -451,8 +459,9 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[startup_nomount] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Startup nomount failed with ORA-$LASTEXITCODE"
-exit 1
+  log "Startup nomount failed with ORA-$LASTEXITCODE"
+  Write-Output "Startup nomount failed with ORA-$LASTEXITCODE"
+  exit 1
 }
 
 log "Startup NoMount database, $oraUnq FINISHED"
@@ -478,8 +487,9 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[crt_ctrl_file] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Control file creation failed with ORA-$LASTEXITCODE"
-exit 1
+  log "Control file creation failed with ORA-$LASTEXITCODE"
+  Write-Output "Control file creation failed with ORA-$LASTEXITCODE"
+  exit 1
 }
 
 log "Execute control File, $controlFileSql FINISHED"
@@ -503,8 +513,9 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[disable_archivelog] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
-exit 1
+  log "Sql Query failed with ORA-$LASTEXITCODE"
+  Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+  exit 1
 }
 
 log "Alter VDB for noarchivelog, $oraUnq FINISHED"
@@ -549,8 +560,9 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
 log "[max_perf] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
-exit 1
+  log "Sql Query failed with ORA-$LASTEXITCODE"
+  Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+  exit 1
 }
 
 log "Set Standby to Max Performance on DB, $oraUnq FINISHED"
@@ -587,4 +599,30 @@ log "[SQL - get_db_version] $result"
 log "Getting database version, $oraUn FINISHED"
 
 return $result
+}
+
+function switchlogfiles() {
+log "Switching all redo log files STARTED"
+
+$sqlQuery=@"
+WHENEVER SQLERROR EXIT SQL.SQLCODE
+alter system switch all logfile;
+exit
+"@
+  
+log "[SQL Query - switch redo log files] $sqlQuery"
+  
+$result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
+  
+log "[SQL - switch redo log files] $result"
+
+if ($LASTEXITCODE -ne 0){
+  log "Redo log switch commad failed with ORA-$LASTEXITCODE"
+  Write-Output "Redo log switch commad failed with ORA-$LASTEXITCODE"
+  exit 1
+  }
+  
+  
+log "Switching all redo log files FINISHED"
+  
 }

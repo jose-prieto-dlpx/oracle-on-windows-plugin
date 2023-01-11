@@ -121,6 +121,12 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
 
 log "[SQL - get_childVDB_LogFiles] $result"
 
+if ($LASTEXITCODE -ne 0){
+	log "Extract Log files failed with ORA-$LASTEXITCODE"
+	Write-Output "Extract Log files failed with ORA-$LASTEXITCODE"
+	exit 1
+	}
+	
 Write-Output $result > $logFiles
 
 remove_empty_lines $logFiles
@@ -129,14 +135,13 @@ log "Extract Log Files for Child VDB, $logFiles FINISHED"
 
 ### apply each log for media recovery
 
-$applyRedoLog = "$delphixToolkitPath\logs\$oraUnq\applyredo.log"
+$applyRedoLog = "$delphixToolkitPath\logs\$oraUnq\applyredo_$(get-date -Format yyyyMMddHHmm).log"
 
 log "Perform Media Recovery for Child VDB, $oraUnq STARTED"
 
 ForEach ($log in (Get-Content $logFiles))
 {
-Write-Output "#########################" >> $applyRedoLog
-Write-Output $log >> $applyRedoLog
+Write-Output $log > $applyRedoLog
 $sqlQuery=@"
 RECOVER DATABASE USING BACKUP CONTROLFILE
 $log
@@ -144,21 +149,19 @@ $log
 
 log "[SQL Query - Media Recovery]: $sqlQuery"
 
-$sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba" >> $applyRedoLog
+$sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba" > $applyRedoLog
 }
 
-$logContent = Get-Content $applyRedoLog
+$error_string=Select-String -Pattern "ORA-00279|ORA-00289|ORA-00280|ORA-00310|ORA-00334|ORA-00339" -Path $applyRedoLog -NotMatch | Select-String -Pattern "ORA-[0-9[0-9][0-9][0-9][0-9]"
 
-if ($logContent -like "*Media recovery complete*"){
-log "Media Recovery Completed"
-}
-else {
-log "Media Recovery Failed. Check logFile, $applyRedoLog"
-exit 1
-}
+if ($error_string) { 
+    log "Media recovery command failed with $error_string"
+	Write-Output "Media recovery command failed with $error_string"
+    exit 1
+} 
 
-log "Perform Media Recovery for Child VDB, $oraUnq FINISHED"
 log "Media Recovery LogFile, $applyRedoLog"
+log "Perform Media Recovery for Child VDB, $oraUnq FINISHED"
 
 ##### open db with reset logs ########
 
@@ -183,7 +186,8 @@ $add_temp_files =  . $Env:ORACLE_HOME\bin\sqlplus.exe "/ as sysdba" "@$addtempfi
 
 log "[SQL- add_temp_files] $add_temp_files"
 if ($LASTEXITCODE -ne 0){
-	Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+	log "Add tempfiles query failed with ORA-$LASTEXITCODE"
+	Write-Output "Add tempfiles query failed with ORA-$LASTEXITCODE"
 	exit 1
 	}
 	
@@ -208,35 +212,65 @@ get_db_status
 
 ####### Create spfile and restart VDB #######
 
-log "Create spfile from pfile, $oracleHome\database\init${oraUnq}.ora STARTED"
+log "Checking if spfile is already in use STARTED"
+$sqlQuery=@"
+ WHENEVER SQLERROR EXIT SQL.SQLCODE
+ set serveroutput off
+ set feedback off
+ set heading off
+ set echo off
+ select value from v`$parameter where name='spfile';
+ exit
+"@
 
-if ((Test-Path "$oracleHome\database\spfile${oraUnq}.ora")) {
-	Move-Item "$oracleHome\database\spfile${oraUnq}.ora" "$oracleHome\database\spfile${oraUnq}.ora.bak" -force	
+
+$result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
+
+log "[SQL - Check spfile use] $result"
+
+if ($LASTEXITCODE -ne 0){
+	log "Check spfile use failed with ORA-$LASTEXITCODE"
+	Write-Output "Check spfile use failed with ORA-$LASTEXITCODE"
+	exit 1
 }
 
+log "Checking if spfile is already in use FINISHED"
 
-$sqlQuery=@"
+if ($result) {
+	log "spfile already in use no further action required"
+}
+else {
+	log "Create spfile from pfile, $oracleHome\database\init${oraUnq}.ora STARTED"
+
+
+	if ((Test-Path "$oracleHome\database\spfile${oraUnq}.ora")) {
+		Move-Item "$oracleHome\database\spfile${oraUnq}.ora" "$oracleHome\database\spfile${oraUnq}.ora.bak" -force	
+	}
+
+
+	$sqlQuery=@"
 WHENEVER SQLERROR EXIT SQL.SQLCODE
 create spfile from pfile='$oracleHome\database\init${oraUnq}.ora';
 exit
 "@
 
-log "[SQL Query - crt_sp_file] $sqlQuery"
+	log "[SQL Query - crt_sp_file] $sqlQuery"
 
-$result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
+	$result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
 
-log "[crt_sp_file] $result"
+	log "[crt_sp_file] $result"
 
-if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
-exit 1
+	if ($LASTEXITCODE -ne 0){
+		log "Sql Query failed with ORA-$LASTEXITCODE"
+		Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+		exit 1
+	}
+
+	log "Create spfile from pfile, $oracleHome\database\init${oraUnq}.ora FINISHED"
+
+	log "Restarting VDB to use spfile"
+
+	stop_OraService ${oraUnq} "srvc,inst" "immediate"
+	start_OraService ${oraUnq} "srvc,inst"
 }
-
-log "Create spfile from pfile, $oracleHome\database\init${oraUnq}.ora FINISHED"
-
-log "Restarting VDB to use spfile"
-
-stop_OraService ${oraUnq} "srvc,inst" "immediate"
-start_OraService ${oraUnq} "srvc,inst"
-
 log "Provision Child VDB, $oraUnq FINISHED"

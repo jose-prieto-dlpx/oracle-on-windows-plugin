@@ -62,8 +62,9 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
 log "[crt_sp_file] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
-exit 1
+	log "Sql Query failed with ORA-$LASTEXITCODE"
+	Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+	exit 1
 }
 
 log "Create spfile from pfile, $virtMnt\$oraUnq\init${oraUnq}.ora.master FINISHED"
@@ -96,8 +97,9 @@ $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
 
 log "[add_temp_file_script] $result"
 if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
-exit 1
+	log "Sql Query failed with ORA-$LASTEXITCODE"
+	Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+	exit 1
 }
 
 
@@ -112,6 +114,7 @@ $add_temp_files =  . $Env:ORACLE_HOME\bin\sqlplus.exe "/ as sysdba" "@$addtempfi
 
 log "[SQL- add_temp_files] $add_temp_files"
 if ($LASTEXITCODE -ne 0){
+	log "Sql Query failed with ORA-$LASTEXITCODE"
 	Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 	exit 1
 	}
@@ -140,8 +143,9 @@ $result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
 log "[crt_sp_file] $result"
 
 if ($LASTEXITCODE -ne 0){
-Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
-exit 1
+	log "Sql Query failed with ORA-$LASTEXITCODE"
+	Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+	exit 1
 }
 
 log "Create spfile, $virtMnt\$oraUnq\spfile${oraUnq}.ora from pfile, $virtMnt\$oraUnq\init${oraUnq}.ora.master FINISHED"
@@ -160,16 +164,6 @@ log "Copying spfile $virtMnt\$oraUnq\spfile${oraUnq}.ora to Oracle home $oracleH
 
 stop_OraService ${oraUnq} "srvc,inst" "immediate"
 start_OraService ${oraUnq} "srvc,inst"
-
-######### control file create #####
-
-log "Moving ccf.sql file to ccf.sql.orig STARTED"
-
-Move-Item "$virtMnt\$oraUnq\ccf.sql" "$virtMnt\$oraUnq\ccf.sql.orig"
-
-log "Moving ccf.sql file to ccf.sql.original FINISHED"
-
-create_control_file $virtMnt $oraUnq
 
 ######### show database status ###########
 
