@@ -606,23 +606,52 @@ log "Switching all redo log files STARTED"
 
 $sqlQuery=@"
 WHENEVER SQLERROR EXIT SQL.SQLCODE
+set NewPage none
+set heading off
+set feedback off
+select log_mode from v`$database;
+exit
+"@
+
+log "[SQL Query - check database archive log mode] $sqlQuery"
+  
+$result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
+
+log "[SQL - database archive log mode] $result"
+
+if ($LASTEXITCODE -ne 0){  
+  log "Check database archive log mode failed with ORA-$LASTEXITCODE"
+  Write-Output "Check database archive log mode failed with ORA-$LASTEXITCODE"
+  exit 1
+  }
+
+if ($result -eq 'NOARCHIVELOG') {
+  log "Database is in noarchivelog mode - archivelog rotation is not necessary"
+  Write-Output "Database is in noarchivelog mode - archivelog rotation is not necessary"
+  log "Switching all redo log files FINISHED"
+  exit 0
+}
+else {
+  $sqlQuery=@"
+WHENEVER SQLERROR EXIT SQL.SQLCODE
 alter system switch all logfile;
 exit
 "@
   
-log "[SQL Query - switch redo log files] $sqlQuery"
-  
-$result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
-  
-log "[SQL - switch redo log files] $result"
+  log "[SQL Query - switch redo log files] $sqlQuery"
+    
+  $result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
+    
+  log "[SQL - switch redo log files] $result"
 
-if ($LASTEXITCODE -ne 0){
-  log "Redo log switch commad failed with ORA-$LASTEXITCODE"
-  Write-Output "Redo log switch commad failed with ORA-$LASTEXITCODE"
-  exit 1
-  }
+  if ($LASTEXITCODE -ne 0){
+    log "Redo log switch commad failed with ORA-$LASTEXITCODE"
+    Write-Output "Redo log switch commad failed with ORA-$LASTEXITCODE"
+    exit 1
+    }
   
-  
+}  
+
 log "Switching all redo log files FINISHED"
   
 }
