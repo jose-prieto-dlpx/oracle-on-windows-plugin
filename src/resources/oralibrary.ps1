@@ -629,7 +629,6 @@ if ($result -eq 'NOARCHIVELOG') {
   log "Database is in noarchivelog mode - archivelog rotation is not necessary"
   Write-Output "Database is in noarchivelog mode - archivelog rotation is not necessary"
   log "Switching all redo log files FINISHED"
-  exit 0
 }
 else {
   $sqlQuery=@"
