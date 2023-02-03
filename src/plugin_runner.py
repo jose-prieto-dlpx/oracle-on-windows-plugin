@@ -3,7 +3,7 @@
 #
 
 from dlpx.virtualization.platform import Mount, MountSpecification, Plugin
-from operations import discovery, restore, provision, postSnapshot, enable, disable, start, stop, status, cleanup 
+from operations import discovery, restore, provision, postSnapshot, preSnapshot, enable, disable, start, stop, status
 
 from generated.definitions import (
     RepositoryDefinition,
@@ -64,7 +64,7 @@ def linked_mount_specification(staged_source, repository):
 def restore_oracle_backup(staged_source,repository,source_config,optional_snapshot_parameters):
 
     source_connection = staged_source.staged_connection
-    parameters = staged_source.parameters
+    parameters = staged_source.parameters    
 
     if (optional_snapshot_parameters is not None) and (optional_snapshot_parameters.resync is True):
         return restore.initial_sync(source_connection,parameters,repository,source_config),
@@ -106,6 +106,12 @@ def reconfigure(virtual_source, repository, source_config, snapshot):
     parameters = virtual_source.parameters
     return enable.vdb_enable(virtual_connection, parameters, repository, source_config, snapshot)
 
+@plugin.virtual.pre_snapshot()
+def virtual_pre_snapshot(virtual_source, repository, source_config):
+    virtual_connection = virtual_source.connection
+    parameters = virtual_source.parameters
+
+    return preSnapshot.exec_vdb_presnapshot(virtual_connection,parameters,repository,source_config)  
 
 @plugin.virtual.post_snapshot()
 def virtual_post_snapshot(virtual_source, repository, source_config):
