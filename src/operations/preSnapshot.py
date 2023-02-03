@@ -31,10 +31,9 @@ def exec_ds_presnapshot (source_connection,parameters,repository,source_config,s
     logger.debug("Repository Parameters: {}".format(repository))
     logger.debug("Source Config Parameters: {}".format(source_config))
 
-    executeScript.execute_powershell(source_connection,'ds_preSnapshot.ps1',env)
+    # Left intentionally blank as scafolding for any future needs
     
-
-    
+   
 
 def exec_vdb_presnapshot (source_connection,parameters,repository,source_config):
     logger = setupLogger._setup_logger(__name__)

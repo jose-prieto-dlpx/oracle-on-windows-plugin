@@ -14,20 +14,10 @@ $scriptDir = "${delphixToolkitPath}\scripts"
 . $scriptDir\delphixLibrary.ps1
 . $scriptDir\oracleLibrary.ps1
 
-log "Executing $programName"
+log "$programName - STARTED"
 
-# Creating new controlfile copy
+# Left intentionally blank as scafolding for any future needs
 
-$ccf_file_old = "$virtMnt\$oraUnq\ccf_old.sql"
-$ccf_file_new = "$virtMnt\$oraUnq\CCF.SQL"
-log "Checking for the existence of $ccf_file_new and moving to $ccf_file_old if necessary"
-
-if ((Test-Path "$virtMnt\$oraUnq\CCF.SQL")) {
-    log "Moving ccf.sql file to ccf.sql.old STARTED"
-	Move-Item $ccf_file_new $ccf_file_old -force
-    log "Moving ccf.sql file to ccf.sql.old FINISHED"
-}
-
-create_control_file $virtMnt $oraUnq
+log "$programName - FINISHED"
 
 exit 0

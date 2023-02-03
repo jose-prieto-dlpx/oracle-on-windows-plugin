@@ -40,7 +40,7 @@ $rman_restore = rman target / cmdfile="'$restorecmdfile'"
 
 log "[RMAN- rman_restore] $rman_restore"
 
-$error_string=$rman_restore | select-string -Pattern "RMAN-[0-9[0-9][0-9][0-9][0-9]"
+$error_string=$rman_restore | Select-String -Pattern "RMAN-[0-9[0-9][0-9][0-9][0-9]" | Select-String -Pattern "RMAN-07517|RMAN-07519" -NotMatch
 
 if ($error_string) { 
     log "RMAN restore command failed with $error_string"

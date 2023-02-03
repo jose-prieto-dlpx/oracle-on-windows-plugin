@@ -64,9 +64,7 @@ def linked_mount_specification(staged_source, repository):
 def restore_oracle_backup(staged_source,repository,source_config,optional_snapshot_parameters):
 
     source_connection = staged_source.staged_connection
-    parameters = staged_source.parameters
-
-    return preSnapshot.exec_ds_presnapshot(source_connection,parameters,repository,source_config)  
+    parameters = staged_source.parameters    
 
     if (optional_snapshot_parameters is not None) and (optional_snapshot_parameters.resync is True):
         return restore.initial_sync(source_connection,parameters,repository,source_config),
