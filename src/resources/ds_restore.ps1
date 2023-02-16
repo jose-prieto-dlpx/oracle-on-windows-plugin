@@ -42,11 +42,11 @@ log "[RMAN- rman_restore] $rman_restore"
 
 $error_string=$rman_restore | select-string -Pattern "RMAN-[0-9[0-9][0-9][0-9][0-9]"
 
-if ($error_string) { 
-    log "RMAN restore failed with $error_string"
-    exit 1
-} 
-
+### Commenting out this piece until the code provides its own data folder to avoid ORA-07517 on txt files used by the script
+# if ($error_string) { 
+#     log "RMAN restore command failed with $error_string"
+#     exit 1
+# } 
 
 ##### recover database
 

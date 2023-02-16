@@ -8,6 +8,7 @@
 $programName = 'ds_preSnapshot.ps1'
 $delphixToolkitPath = $env:DLPX_TOOLKIT_PATH
 $oraUnq = $env:ORA_UNQ_NAME
+$oraSrc = $env:ORACLE_SRC_NAME
 $virtMnt = $env:VDB_MNT_PATH
 $scriptDir = "${delphixToolkitPath}\scripts"
 
@@ -16,18 +17,26 @@ $scriptDir = "${delphixToolkitPath}\scripts"
 
 log "Executing $programName"
 
-# Creating new controlfile copy
+# Creating new controlfile copy only if the service is running. Otherwise we may be in the very first ingestion and there is no database yet.
 
-$ccf_file_old = "$virtMnt\$oraUnq\ccf_old.sql"
-$ccf_file_new = "$virtMnt\$oraUnq\CCF.SQL"
-log "Checking for the existence of $ccf_file_new and moving to $ccf_file_old if necessary"
+$svc_status = check_srvc_status $oraUnq
 
-if ((Test-Path "$virtMnt\$oraUnq\CCF.SQL")) {
-    log "Moving ccf.sql file to ccf.sql.old STARTED"
-	Move-Item $ccf_file_new $ccf_file_old -force
-    log "Moving ccf.sql file to ccf.sql.old FINISHED"
+if ($svc_status -eq "Running"){
+    $ccf_file_old = "$virtMnt\$oraSrc\ccf_old.sql"
+    $ccf_file_new = "$virtMnt\$oraSrc\CCF.SQL"
+    log "Checking for the existence of $ccf_file_new and moving to $ccf_file_old if necessary"
+    
+    if ((Test-Path "$virtMnt\$oraSrc\CCF.SQL")) {
+        log "Moving ccf.sql file to ccf.sql.old STARTED"
+        Move-Item $ccf_file_new $ccf_file_old -force
+        log "Moving ccf.sql file to ccf.sql.old FINISHED"
+    }
+    
+    create_control_file $virtMnt $oraSrc
+  }
+else {
+    log "Service not running, assuming first ingestion of the database doing nothing."
 }
 
-create_control_file $virtMnt $oraUnq
 
 exit 0
