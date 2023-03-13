@@ -74,7 +74,7 @@ if ($error_string) {
 
 log "Cataloging individual controlfile autobackup files in ${oraBkpLoc}\*c-$DBID* STARTED"
 
-Get-ChildItem "${oraBkpLoc}\*c-$DBID*" | ForEach-Object {Write-Output "catalog backuppiece $_;"} > $catalogAutoCtlBkp
+Get-ChildItem "${oraBkpLoc}\*c-$DBID*" | ForEach-Object {Write-Output "catalog backuppiece '$_';"} > $catalogAutoCtlBkp
 
 $rman_catalog_bkp = rman target / cmdfile="'$catalogAutoCtlBkp'"
 
