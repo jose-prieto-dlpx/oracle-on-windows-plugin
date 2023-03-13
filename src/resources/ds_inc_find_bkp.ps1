@@ -16,7 +16,7 @@ $oraSrc = $env:ORA_SRC
 $oraBkpLoc = $env:ORACLE_BKP_LOC
 $DBlogDir = ${delphixToolkitPath}+"\logs\"+${oraUnq}
 
-$catalogAutoCtlBkp = $DBlogDir+catalogautobackup.rmn
+$catalogAutoCtlBkp = $DBlogDir+"\catalogautobackup.rmn"
 
 $scriptDir = "${delphixToolkitPath}\scripts"
 
@@ -72,13 +72,13 @@ if ($error_string) {
 } 
 
 
-log "Cataloging individual controlfile autobackup files STARTED"
+log "Cataloging individual controlfile autobackup files in "${oraBkpLoc}\*c-$DBID*" STARTED"
 
 Get-ChildItem "${oraBkpLoc}\*c-$DBID*" | ForEach-Object {Write-Output "catalog backuppiece $_;"} > $catalogAutoCtlBkp
 
-$rman_restore = rman target / cmdfile="'$catalogAutoCtlBkp'"
+$rman_catalog_bkp = rman target / cmdfile="'$catalogAutoCtlBkp'"
 
-log "[RMAN- rman_restore] $rman_restore"
+log "[RMAN- Catalog output] $rman_catalog_bkp"
 
 $error_string=$rman_restore | select-string -Pattern "RMAN-[0-9][0-9][0-9][0-9][0-9] "
 
