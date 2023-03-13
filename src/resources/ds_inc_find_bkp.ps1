@@ -8,17 +8,15 @@
 $programName = 'ds_inc_find_bkp.ps1'
 $delphixToolkitPath = $env:DLPX_TOOLKIT_PATH
 $oracleHome = $env:ORACLE_HOME
-$oraInstName = $env:ORACLE_INST
-$oraUser = $env:ORACLE_USER
-$oraPwd = $env:ORACLE_PASSWD
 $oraBase = $env:ORACLE_BASE
 $oraDbid = $env:ORACLE_DBID
 $oraUnq = $env:ORA_UNQ_NAME
 $stgMnt = $env:STG_MNT_PATH
 $oraSrc = $env:ORA_SRC
 $oraBkpLoc = $env:ORACLE_BKP_LOC
-$oraCtrlbkp = $env:ORACLE_CTRL_FILE_BKP
 $DBlogDir = ${delphixToolkitPath}+"\logs\"+${oraUnq}
+
+$catalogAutoCtlBkp = $DBlogDir+catalogautobackup.rmn
 
 $scriptDir = "${delphixToolkitPath}\scripts"
 
@@ -45,7 +43,6 @@ else {$lastEndTime=""}
 $Env:ORACLE_BASE=$oraBase
 $Env:ORACLE_SID=$oraUnq
 $Env:ORACLE_HOME=$oracleHome
-$initfile = "$oracleHome\database\init${oraUnq}.ora"
 
 log "ORACLE_BASE: $oraBase"
 log "ORACLE_HOME: $oracleHome"
@@ -67,13 +64,30 @@ $result = $rmanQuery | rman target /
 
 log "[catalog_bkploc] $result"
 
-$error_string=$result | select-string -Pattern "RMAN-[0-9[0-9][0-9][0-9][0-9]"
+$error_string=$result | select-string -Pattern "RMAN-[0-9][0-9][0-9][0-9][0-9]"
 
 if ($error_string) { 
     log "RMAN catalog command failed with $error_string"
     exit 1
 } 
 
+
+log "Cataloging individual controlfile autobackup files STARTED"
+
+Get-ChildItem "${oraBkpLoc}\*c-$DBID*" | ForEach-Object {Write-Output "catalog backuppiece $_;"} > $catalogAutoCtlBkp
+
+$rman_restore = rman target / cmdfile="'$catalogAutoCtlBkp'"
+
+log "[RMAN- rman_restore] $rman_restore"
+
+$error_string=$rman_restore | select-string -Pattern "RMAN-[0-9][0-9][0-9][0-9][0-9] "
+
+if ($error_string) { 
+    log "RMAN returned some errors or warnings see below"
+    log "$error_string"
+} 
+
+log "Cataloging individual controlfile autobackup files FINISHED"
 
 log "Catalog to backup location, $oraBkpLoc FINISHED"
 
@@ -88,33 +102,36 @@ set feedback off
 set heading off
 set echo off
 set NewPage none
-select handle from (SELECT DISTINCT replace(HANDLE,chr(10)) HANDLE, rank() over (order by b.set_stamp desc) latest from V`$BACKUP_CONTROLFILE_DETAILS A, V`$BACKUP_PIECE_DETAILS B where A.BTYPE_KEY = B.BS_KEY and A.ID1 = B.SET_STAMP and A.ID2 = B.SET_COUNT and  CHECKPOINT_TIME = (select max(CHECKPOINT_TIME) from V`$BACKUP_CONTROLFILE_DETAILS C, V`$BACKUP_PIECE_DETAILS D where C.BTYPE_KEY = D.BS_KEY and C.ID1 = D.SET_STAMP and C.ID2 = D.SET_COUNT and D.HANDLE like UPPER('$oraBkpLoc\%')) and HANDLE like UPPER('$oraBkpLoc\%'))  where latest=1;
+select handle,checkpoint_time from (SELECT DISTINCT replace(HANDLE,chr(10)) HANDLE, to_char(CHECKPOINT_TIME,'dd-mon-yyyy hh24:mi:ss') checkpoint_time, rank() over (order by b.set_stamp desc) latest from V`$BACKUP_CONTROLFILE_DETAILS A, V`$BACKUP_PIECE_DETAILS B where A.BTYPE_KEY = B.BS_KEY and A.ID1 = B.SET_STAMP and A.ID2 = B.SET_COUNT and  CHECKPOINT_TIME = (select max(CHECKPOINT_TIME) from V`$BACKUP_CONTROLFILE_DETAILS C, V`$BACKUP_PIECE_DETAILS D where C.BTYPE_KEY = D.BS_KEY and C.ID1 = D.SET_STAMP and C.ID2 = D.SET_COUNT and D.HANDLE like UPPER('$oraBkpLoc\%')) and HANDLE like UPPER('$oraBkpLoc\%'))  where latest=1;
 exit
 "@
 
-log "[SQL Query - get_new_ctl_file] $sqlQuery"
+log "[SQL Query - get_new_ctl_file_info] $sqlQuery"
 
-$new_ctl_bkp = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
+$result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
 
-$new_ctl_bkp=$new_ctl_bkp.trim()
+$new_ctl_bkp = $result.split(",")[0]
+$checkpoint_time = $result.split(",")[1]
 
-log "[get_new_ctl_file] $new_ctl_bkp"
+log "[new_ctl_file_info] $new_ctl_bkp - $checkpoint_time"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
-exit 1
+    Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+    exit 1
 }
 
 ##### move existing to last
-mv $stgMnt\$oraSrc\new_ctl_bkp_piece.txt $stgMnt\$oraSrc\last_ctl_bkp_piece.txt -force
+Move-Item $stgMnt\$oraSrc\new_ctl_bkp_piece.txt $stgMnt\$oraSrc\last_ctl_bkp_piece.txt -force
 
-echo $new_ctl_bkp > "$stgMnt\$oraSrc\new_ctl_bkp_piece.txt"
+Write-Output $new_ctl_bkp > "$stgMnt\$oraSrc\new_ctl_bkp_piece.txt"
 
 remove_empty_lines "$stgMnt\$oraSrc\new_ctl_bkp_piece.txt"
 
-if ($new_ctl_bkp -eq $lastCtlBkp){
+
+
+if ($new_ctl_bkp -eq $lastCtlBkp -And $lastEndTime -ge $checkpoint_time){
 	log "!!!! No New Full/Differential Backup Found !!!!"
-	echo "NoNewBackup"
+	Write-Output "NoNewBackup"
 exit 0
 }
 
@@ -141,11 +158,11 @@ $result = $result -replace '\s',''
 log "[get_pre_datafiles] $result"
 
 if ($LASTEXITCODE -ne 0){
-echo "Sql Query failed with ORA-$LASTEXITCODE"
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
 exit 1
 }
 
-echo $result > "$DBlogDir\pre_datafiles.txt"
+Write-Output $result > "$DBlogDir\pre_datafiles.txt"
 
 log "Get Pre DataFiles, $oraUnq FINISHED"
 
@@ -157,7 +174,7 @@ shutdown "immediate"
 
 log "Backing up existing control file, $stgMnt\$oraSrc\CONTROL01.CTL STARTED"
 
-mv $stgMnt\$oraSrc\CONTROL01.CTL $stgMnt\$oraSrc\CONTROL01.CTL.bak -force
+Move-Item $stgMnt\$oraSrc\CONTROL01.CTL $stgMnt\$oraSrc\CONTROL01.CTL.bak -force
 
 log "mv $stgMnt\$oraSrc\CONTROL01.CTL $stgMnt\$oraSrc\CONTROL01.CTL.bak -force"
 
@@ -184,7 +201,7 @@ $result = $rmanQuery | rman target /
 
 log "[restore_new_ctrlfile_backup] $result"
 
-$error_string=$result | select-string -Pattern "RMAN-[0-9[0-9][0-9][0-9][0-9]"
+$error_string=$result | select-string -Pattern "RMAN-[0-9][0-9][0-9][0-9][0-9]"
 
 if ($error_string) { 
     log "RMAN restore controlfile command failed with $error_string"

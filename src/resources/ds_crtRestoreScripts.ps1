@@ -185,7 +185,7 @@ Write-Output $result >> $restorecmdfile
 
 Write-Output "SET UNTIL SCN $end_scn;" >> $restorecmdfile
 
-Write-Output "RESTORE DATABASE;" >> $restorecmdfile
+Write-Output "RESTORE DATABASE FORCE;" >> $restorecmdfile
 Write-Output "SWITCH DATAFILE ALL;" >> $restorecmdfile
 for ($i=1; $i -le $rmanChannels; $i=$i+1)
 {Write-Output "RELEASE CHANNEL T${i};" >> $restorecmdfile}
