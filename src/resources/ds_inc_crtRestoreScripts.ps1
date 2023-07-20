@@ -66,19 +66,43 @@ log "[Initiating RMAN connection check] - Enabling RMAN views"
 
  $result = $testRman | . $Env:ORACLE_HOME\bin\rman.exe target /
 
- log "[Initiating RMAN connection check] - Cleaning SBT backups"
- #### 2) the control file might have some SBT backups in its catalog, which will cause error during restore
- $testRman =@"
- allocate channel for maintenance device type sbt parms 'SBT_LIBRARY=oracle.disksbt, ENV=(BACKUP_DIR=c:\tmp)';
- delete force noprompt obsolete device type SBT;
- crosscheck backup;
- delete force noprompt expired backup device type SBT;
- crosscheck backup;
- delete force nonprompt backup device type SBT;
+log "[Checking if SBT clean up is needed] - it can be very slow"
+
+$sqlQuery=@"
+ WHENEVER SQLERROR EXIT SQL.SQLCODE
+ set serveroutput off
+ set feedback off
+ set heading off
+ set echo off
+ set NewPage none
+ select count(*) from v`$backup_piece where device_type = 'SBT_TAPE';
  exit
+"@
+
+log "[SQL Query - Checking if SBT backupset exists] $sqlQuery"
+
+$sbt_tape_count = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
+
+log "[sbt_tape_count] $sbt_tape_count"
+
+if ([int]$sbt_tape_count -eq 0) {
+      log "[Initiating RMAN connection check] - No STB backups found"
+} else {
+      log "[Initiating RMAN connection check] - Cleaning SBT backups"
+      #### 2) the control file might have some SBT backups in its catalog, which will cause error during restore
+      $testRman =@"
+      allocate channel for maintenance device type sbt parms 'SBT_LIBRARY=oracle.disksbt, ENV=(BACKUP_DIR=c:\tmp)';
+      delete force noprompt obsolete device type SBT;
+      crosscheck backup;
+      delete force noprompt expired backup device type SBT;
+      crosscheck backup;
+      delete force nonprompt backup device type SBT;
+      exit
 "@ 
 
- $result = $testRman | . $Env:ORACLE_HOME\bin\rman.exe target /
+      $result = $testRman | . $Env:ORACLE_HOME\bin\rman.exe target /
+      log "[Initiating RMAN connection check] - Cleaning SBT backups completed"
+}
 
  ########### get_end_time
  $sqlQuery=@"

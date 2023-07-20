@@ -21,12 +21,14 @@ $DBlogDir = ${delphixToolkitPath}+"\logs\"+${oraUnq}
 $restorecmdfile = "$DBlogDir\${oraUnq}.rstr"
 $renamelogtempfile = "$DBlogDir\${oraUnq}.rnm"
 $recovercmdfile = "$DBlogDir\${oraUnq}.rcv"
+$restorelogfile = "$DBlogDir\${oraUnq}.rmanlog"
 
 $scriptDir = "${delphixToolkitPath}\scripts"
 
 $Env:ORACLE_BASE=$oraBase
 $Env:ORACLE_SID=$oraUnq
 $Env:ORACLE_HOME=$oracleHome
+$Env:NLS_DATE_FORMAT="yyyy-mm-dd hh24:mi:ss"
 
 . $scriptDir\delphixLibrary.ps1
 . $scriptDir\oracleLibrary.ps1
@@ -36,7 +38,7 @@ log "Executing $programName"
 log "Backup restore of $oraUnq STARTED"
 
 ### restore rman backup
-$rman_restore = rman target / cmdfile="'$restorecmdfile'"
+$rman_restore = rman target / cmdfile="'$restorecmdfile'" log=$restorelogfile
 
 log "[RMAN- rman_restore] $rman_restore"
 
@@ -50,7 +52,7 @@ $error_string=$rman_restore | select-string -Pattern "RMAN-[0-9][0-9][0-9][0-9][
 
 ##### recover database
 
-$rman_recover = rman target / cmdfile="'$recovercmdfile'"
+$rman_recover = rman target / cmdfile="'$recovercmdfile'" 
 
 log "[RMAN- rman_recover] $rman_recover"
 
