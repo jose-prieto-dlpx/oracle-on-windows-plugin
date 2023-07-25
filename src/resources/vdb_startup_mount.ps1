@@ -19,6 +19,7 @@ $oraBase = $env:ORACLE_BASE
 $oracleHome = $env:ORACLE_HOME
 $srcType = $env:ORA_SRC_TYPE
 $scriptDir = "${delphixToolkitPath}\scripts"
+$virtMnt = $env:VDB_MNT_PATH
 
 . $scriptDir\delphixLibrary.ps1
 . $scriptDir\oracleLibrary.ps1
@@ -35,3 +36,19 @@ log "ORACLE_HOME: $oracleHome"
 log "ORACLE_SID: $oraUnq"
 
 start_mount_pfile $initfile
+
+######## remove autobackup and set controlfile snapshot to Delphix path ##############
+
+log "[remove_autobackup] STARTED"
+
+$rmanQuery = @"
+    CONFIGURE CONTROLFILE AUTOBACKUP OFF;
+    CONFIGURE CONTROLFILE AUTOBACKUP FORMAT FOR DEVICE TYPE DISK TO '%F';
+    CONFIGURE SNAPSHOT CONTROLFILE NAME TO '$virtMnt\$oraUnq\snapcf_$oraUnq.f';
+"@
+
+log "[RMAN Query - remove_autobackup ] $rmanQuery"
+
+$result = $rmanQuery | rman target /
+
+log "[remove_autobackup] $result"

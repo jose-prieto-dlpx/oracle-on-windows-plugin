@@ -146,3 +146,20 @@ if ($LASTEXITCODE -ne 0){
   echo "Sql Query failed with ORA-$LASTEXITCODE"
   exit 1
 }
+
+
+######## remove autobackup and set controlfile snapshot to Delphix path ##############
+
+log "[remove_autobackup] STARTED"
+
+$rmanQuery = @"
+    CONFIGURE CONTROLFILE AUTOBACKUP OFF;
+    CONFIGURE CONTROLFILE AUTOBACKUP FORMAT FOR DEVICE TYPE DISK TO '%F';
+    CONFIGURE SNAPSHOT CONTROLFILE NAME TO '$stgMnt\$oraSrc\snapcf_$oraUnq.f';
+"@
+
+log "[RMAN Query - remove_autobackup ] $rmanQuery"
+
+$result = $rmanQuery | rman target /
+
+log "[remove_autobackup] $result"
