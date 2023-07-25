@@ -38,7 +38,7 @@ log "Executing $programName"
 log "Backup restore of $oraUnq STARTED"
 
 ### restore rman backup
-$rman_restore = rman target / cmdfile="'$restorecmdfile'" log=$restorelogfile
+$rman_restore = rman target / cmdfile="'$restorecmdfile'" log="'$restorelogfile'"
 
 log "[RMAN- rman_restore] $rman_restore"
 
