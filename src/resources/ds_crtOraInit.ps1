@@ -53,7 +53,8 @@ echo "*.db_block_size=8192" >> ${initfile}
 echo "*.db_domain=''" >> ${initfile}
 echo "*.db_name=$oraSrc" >> ${initfile}
 echo "*.db_unique_name='$oraUnq'" >> ${initfile}
-echo "*.db_recovery_file_dest='$stgMnt\$oraSrc\flash_recovery_area'" >> ${initfile}
+# removed - per Oracle advice 
+# echo "*.db_recovery_file_dest='$stgMnt\$oraSrc\flash_recovery_area'" >> ${initfile}
 echo "*.db_recovery_file_dest_size=20G" >> ${initfile}
 echo "*.diagnostic_dest='$oraBase'" >> ${initfile}
 echo "*.dispatchers='(PROTOCOL=TCP) (SERVICE=${oraSrc}XDB)'" >> ${initfile}

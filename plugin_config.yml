@@ -1,11 +1,11 @@
 id: 202b2966-a67b-4657-bd9a-c901d7f654fb
 name: Oracle on Windows
-language: PYTHON27
+language: PYTHON38
 hostTypes:
 - WINDOWS
 pluginType: STAGED
 entryPoint: plugin_runner:plugin
 srcDir: src
 schemaFile: schema.json
-buildNumber: 1.0.4.7
+buildNumber: 1.0.4.9
 externalVersion: 1.0.4

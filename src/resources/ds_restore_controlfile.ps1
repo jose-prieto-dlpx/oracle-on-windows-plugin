@@ -119,3 +119,47 @@ log "Get Undo TBS list, $oraUnq FINISHED"
 $newinitOra = Get-Content $initfile
 
 log "Contents of new init.ora, $newinitOra"
+
+
+######## Oracle support advice #######
+
+log "Reset controlfile section in $oraUnq STARTED"
+
+$sqlQuery = @"
+    WHENEVER SQLERROR EXIT SQL.SQLCODE
+    set serveroutput off
+    set feedback off
+    set heading off
+    set echo off
+    set NewPage none
+    exec dbms_backup_restore.resetcfilesection(19);
+		exit
+"@
+
+log "[SQL Query - resetcfilesection] $sqlQuery"
+
+$result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe -silent  " /as sysdba"
+
+log "[resetcfilesection] $result"
+
+if ($LASTEXITCODE -ne 0){
+  echo "Sql Query failed with ORA-$LASTEXITCODE"
+  exit 1
+}
+
+
+######## remove autobackup and set controlfile snapshot to Delphix path ##############
+
+log "[remove_autobackup] STARTED"
+
+$rmanQuery = @"
+    CONFIGURE CONTROLFILE AUTOBACKUP OFF;
+    CONFIGURE CONTROLFILE AUTOBACKUP FORMAT FOR DEVICE TYPE DISK TO '%F';
+    CONFIGURE SNAPSHOT CONTROLFILE NAME TO '$stgMnt\$oraSrc\snapcf_$oraUnq.f';
+"@
+
+log "[RMAN Query - remove_autobackup ] $rmanQuery"
+
+$result = $rmanQuery | rman target /
+
+log "[remove_autobackup] $result"
