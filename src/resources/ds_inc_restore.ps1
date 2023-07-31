@@ -21,6 +21,7 @@ $DBlogDir = ${delphixToolkitPath}+"\logs\"+${oraUnq}
 $restorecmdfile = "$DBlogDir\${oraUnq}.rstr"
 $renamelogtempfile = "$DBlogDir\${oraUnq}.rnm"
 $recovercmdfile = "$DBlogDir\${oraUnq}.rcv"
+$restorelogfile = "$DBlogDir\incremental_restore_${oraUnq}.rmanlog"
 
 $scriptDir = "${delphixToolkitPath}\scripts"
 
@@ -36,7 +37,7 @@ log "Executing $programName"
 log "Backup restore of $oraUnq STARTED"
 
 ### restore rman backup
-$rman_restore = rman target / cmdfile="'$restorecmdfile'"
+$rman_restore = rman target / cmdfile="'$restorecmdfile'" | Tee-Object $restorelogfile -Append
 
 log "[RMAN- rman_restore] $rman_restore"
 
@@ -51,7 +52,7 @@ $error_string=$rman_restore | select-string -Pattern "RMAN-[0-9][0-9][0-9][0-9][
 
 ##### recover database
 
-$rman_recover = rman target / cmdfile="'$recovercmdfile'"
+$rman_recover = rman target / cmdfile="'$recovercmdfile'" | Tee-Object $restorelogfile -Append
 
 log "[RMAN- rman_recover] $rman_recover"
 

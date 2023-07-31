@@ -86,9 +86,9 @@ $sbt_tape_count = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as 
 log "[sbt_tape_count] $sbt_tape_count"
 
 if ([int]$sbt_tape_count -eq 0) {
-      log "[Initiating RMAN connection check] - No STB backups found"
+      log "[Checking if SBT clean up is needed] - No STB backups found"
 } else {
-      log "[Initiating RMAN connection check] - Cleaning SBT backups"
+      log "[Checking if SBT clean up is needed] - Cleaning SBT backups"
       #### 2) the control file might have some SBT backups in its catalog, which will cause error during restore
       $testRman =@"
       allocate channel for maintenance device type sbt parms 'SBT_LIBRARY=oracle.disksbt, ENV=(BACKUP_DIR=c:\tmp)';
@@ -101,7 +101,7 @@ if ([int]$sbt_tape_count -eq 0) {
 "@ 
 
       $result = $testRman | . $Env:ORACLE_HOME\bin\rman.exe target /
-      log "[Initiating RMAN connection check] - Cleaning SBT backups completed"
+      log "[Checking if SBT clean up is needed] - Cleaning SBT backups completed"
 }
 
  ########### get_end_time
@@ -112,7 +112,7 @@ if ([int]$sbt_tape_count -eq 0) {
  set heading off
  set echo off
  set NewPage none
- select to_char(end_time,'dd-mon-yyyy hh24:mi:ss')||'|'|| INPUT_TYPE from (select max(END_TIME) end_time,INPUT_TYPE from V`$RMAN_BACKUP_JOB_DETAILS where INPUT_TYPE in ('DB FULL','DB INCR', 'ARCHIVELOG') and status = 'COMPLETED' group by INPUT_TYPE order by end_time desc)  where rownum=1;
+ select to_char(end_time,'dd-mon-yyyy hh24:mi:ss')||'|'|| INPUT_TYPE from (select max(END_TIME) end_time,INPUT_TYPE from V`$RMAN_BACKUP_JOB_DETAILS where INPUT_TYPE in ('DB FULL','DB INCR') and status = 'COMPLETED' group by INPUT_TYPE order by end_time desc)  where rownum=1;
  exit
 "@
 
@@ -143,21 +143,6 @@ Write-Output $end_time > "$stgMnt\$oraSrc\new_ctl_bkp_endtime.txt"
 remove_empty_lines "$stgMnt\$oraSrc\new_ctl_bkp_endtime.txt"
 
 
-if ($backup_type -eq "ARCHIVELOG") {
-$sqlQuery=@"
- WHENEVER SQLERROR EXIT SQL.SQLCODE
- set serveroutput off
- set feedback off
- set heading off
- set echo off
- set NewPage none
- set numwidth 40
- select (greatest(max(absolute_fuzzy_change#),max(checkpoint_change#))) "endscn" from ( select file#, completion_time, checkpoint_change#, absolute_fuzzy_change# from v`$backup_datafile, ( select  max(start_TIME) start_time, max(END_TIME) end_time  from v`$RMAN_BACKUP_JOB_DETAILS  where INPUT_TYPE in ('DB FULL','DB INCR','ARCHIVELOG')  and status in ('COMPLETED','COMPLETED WITH WARNINGS') ) tsdata where ( incremental_level in (0, 1) OR incremental_level is null ) and file# <> 0 and completion_time between tsdata.start_time and tsdata.end_time and checkpoint_time between tsdata.start_time and tsdata.end_time order by completion_time desc ); 
- exit
- exit
-"@
-
-} else {
 #### get end scn
 
  $sqlQuery=@"
@@ -172,7 +157,6 @@ $sqlQuery=@"
  exit
 "@
 
-}
 log "[SQL Query - get_end_scn] $sqlQuery"
 
 $end_scn = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
