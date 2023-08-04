@@ -18,8 +18,10 @@ $oraSrc = $env:ORA_SRC
 $oraUnq = $env:ORA_UNQ_NAME
 $DBlogDir = ${delphixToolkitPath}+"\logs\"+${oraUnq}
 $restorecmdfile = "$DBlogDir\${oraUnq}.rstr"
+$switchcmdfile = "$DBlogDir\${oraUnq}.switch"
 $renamelogtempfile = "$DBlogDir\${oraUnq}.rnm"
 $recovercmdfile = "$DBlogDir\${oraUnq}.rcv"
+$restorelogfile = "$DBlogDir\incremental_restore_${oraUnq}.rmanlog"
 
 $scriptDir = "${delphixToolkitPath}\scripts"
 
@@ -133,6 +135,39 @@ $index = $result.IndexOf("|")
 $end_time = $result.Substring(0,$index).trim()
 $backup_type = $result.Substring($index+1).trim()
 
+
+# fix for incremental level 0
+
+ $sqlQuery=@"
+ WHENEVER SQLERROR EXIT SQL.SQLCODE
+ set serveroutput off
+ set feedback off
+ set heading off
+ set echo off
+ set NewPage none
+ select incremental_level from (
+ select incremental_level, rank() over (order by set_count desc) r from V`$BACKUP_DATAFILE ,
+ (
+ select max(END_TIME) end_time, max(start_time) start_time from V`$RMAN_BACKUP_JOB_DETAILS
+ where INPUT_TYPE in ('DB FULL','DB INCR')
+ and status = 'COMPLETED'
+ ) job
+ where COMPLETION_TIME between start_time and end_time
+ and file#=1)
+ where r = 1;
+ exit
+"@
+
+log "[SQL Query - get level] $sqlQuery"
+
+$result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
+
+log "[get level] $result"
+
+if ([int]$result -eq 0){
+   $backup_type = 'DB FULL'
+}
+
 log "[end_time] $end_time"
 log "[backup_type] $backup_type"
 
@@ -178,6 +213,9 @@ remove_empty_lines "$stgMnt\$oraSrc\new_ctl_bkp_endscn.txt"
 
 #####
 
+
+
+
 ##### get list of new datafiles
 
 log "Get Post DataFiles, $oraUnq STARTED"
@@ -222,24 +260,112 @@ log "Compare Pre and Post Datafiles, $oraUnq FINISHED"
 
 #### Create RMAN restore script
 
-log "Creating Restore Scripts, $restorecmdfile STARTED"
+log "Creating Restore Scripts, $switchcmdfile STARTED"
 
-Write-Output "catalog start with '$oraBkpLoc\' noprompt;" > $restorecmdfile
-Write-Output "crosscheck backup;" >> $restorecmdfile
-Write-Output "set echo on" >> $restorecmdfile
-Write-Output "RUN" >> $restorecmdfile
-Write-Output "{" >> $restorecmdfile
-Write-Output "ALLOCATE CHANNEL T1 DEVICE TYPE disk;" >> $restorecmdfile
-Write-Output "ALLOCATE CHANNEL T2 DEVICE TYPE disk;" >> $restorecmdfile
+Write-Output "catalog start with '$oraBkpLoc\' noprompt;" > $switchcmdfile
+Write-Output "catalog start with '$stgMnt\$oraSrc\' noprompt;" > $switchcmdfile
+Write-Output "crosscheck backup;" >> $switchcmdfile
+Write-Output "set echo on" >> $switchcmdfile
 
-### rename datafiles
+# ### switch to copy
 
  $sqlQuery=@"
  WHENEVER SQLERROR EXIT SQL.SQLCODE
  set linesize 200 heading off feedback off
  col file_name format a200
-select 'set newname for datafile ' ||FILE#|| ' to '||'''$stgMnt'||'\$oraSrc\'||SUBSTR(NAME,(INSTR(REPLACE(NAME,'/','\'),'\',-1)+1),LENGTH(NAME))||''';' filename from v`$datafile;
-exit
+ select 'switch datafile ' ||FILE#|| ' to copy;' filename from v`$datafile;
+ exit
+"@
+
+log "[SQL Query - switch_to_copy] $sqlQuery"
+
+$result = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
+
+log "[switch_to_copy] $result"
+
+if ($LASTEXITCODE -ne 0){
+Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+exit 1
+}
+
+Write-Output $result >> $switchcmdfile
+
+
+log "Switch restore of $oraUnq STARTED"
+
+### switch datafiles
+$rman_restore = rman target / cmdfile="'$switchcmdfile'" | Tee-Object $restorelogfile -Append
+
+log "[RMAN- rman_restore] $rman_restore"
+
+$error_string=$rman_restore | select-string -Pattern "RMAN-[0-9][0-9][0-9][0-9][0-9]"
+
+##### compare if there is a new scn to recover to #####
+
+if ( Compare-Object -ReferenceObject $(Get-Content $stgMnt\$oraSrc\new_ctl_bkp_endscn.txt) -DifferenceObject $(Get-Content $stgMnt\$oraSrc\last_ctl_bkp_endscn.txt) ) {
+      Write-Output "NEWSCN"
+} else {
+      # check if fuzzy is cleared
+
+      $sqlQuery=@"
+      WHENEVER SQLERROR EXIT SQL.SQLCODE
+      set serveroutput off
+      set feedback off
+      set heading off
+      set echo off
+      set NewPage none
+      set numwidth 40
+      select count(*) from v`$datafile_header where fuzzy = 'YES';
+      exit
+"@
+
+      log "[SQL Query - fuzzy scn] $sqlQuery"
+
+      $fuzzy_scn = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as sysdba"
+
+      $fuzzy_scn = $fuzzy_scn -replace '\s',''
+      log "[fuzzy scn] $fuzzy_scn"
+
+      if ($LASTEXITCODE -ne 0){
+            Write-Output "Sql Query failed with ORA-$LASTEXITCODE"
+            exit 1
+      }
+
+      if ([int]$fuzzy_scn -eq 0) {
+            Write-Output "SAMESCN"
+            exit 0
+      } else {
+            log "Needs recovery to run to clean up fuzzy SCN"
+            Write-Output "NEWSCN"
+      }
+
+}
+
+#####
+
+
+# run report schmema
+$reportSchema = "report schema; exit" > "$DBlogDir\${oraUnq}.report"
+$files = rman target / cmdfile="'$DBlogDir\${oraUnq}.report'" 
+log "Report schema $files"
+
+#####
+
+Write-Output "catalog start with '$oraBkpLoc\' noprompt;" > $restorecmdfile
+Write-Output "catalog start with '$stgMnt\$oraSrc\' noprompt;" >> $restorecmdfile
+Write-Output "RUN" >> $restorecmdfile
+Write-Output "{" >> $restorecmdfile
+Write-Output "ALLOCATE CHANNEL T1 DEVICE TYPE disk;" >> $restorecmdfile
+Write-Output "ALLOCATE CHANNEL T2 DEVICE TYPE disk;" >> $restorecmdfile
+
+# ### rename datafiles
+
+ $sqlQuery=@"
+ WHENEVER SQLERROR EXIT SQL.SQLCODE
+ set linesize 200 heading off feedback off
+ col file_name format a200
+ select 'set newname for datafile ' ||FILE#|| ' to '||'''$stgMnt'||'\$oraSrc\'||SUBSTR(NAME,(INSTR(REPLACE(NAME,'/','\'),'\',-1)+1),LENGTH(NAME))||''';' filename from v`$datafile;
+ exit
 "@
 
 log "[SQL Query - rename_datafiles] $sqlQuery"
@@ -257,17 +383,28 @@ Write-Output $result >> $restorecmdfile
 
 Write-Output "SET UNTIL SCN $end_scn;" >> $restorecmdfile
 
-if (-not ([string]::IsNullOrEmpty($diff))){
-  ForEach($file in $diff) {
-      Write-Output "restore datafile $file;" >> $restorecmdfile
-    }
-}
+# if (-not ([string]::IsNullOrEmpty($diff))){
+#   ForEach($file in $diff) {
+#       Write-Output "restore datafile $file;" >> $restorecmdfile
+#     }
+# }
 
 if ($backup_type -eq "DB FULL"){
-      Write-Output "restore database;" >> $restorecmdfile
+      Write-Output "restore database force;" >> $restorecmdfile
+      # Write-Output "catalog start with '$stgMnt\$oraSrc\' noprompt;" >> $restorecmdfile
+      Write-Output "SWITCH DATAFILE ALL;" >> $restorecmdfile
+} else {
+      # find missing files - the one with 0 size
+      log "processing missing files"
+      $files | Select-String -Pattern '([\d]+?)(\s+0)' | ForEach-Object { 
+            $e = 'restore datafile ' + $_.matches.groups[1].value + ';'; 
+            Write-Output $e >> $restorecmdfile
+            $e = 'switch datafile ' + $_.matches.groups[1].value + ';'; 
+            Write-Output $e >> $restorecmdfile
+      }
+
+      
 }
-Write-Output "catalog start with '$stgMnt\$oraSrc\' noprompt;" >> $restorecmdfile
-Write-Output "SWITCH DATAFILE ALL;" >> $restorecmdfile
 Write-Output "RELEASE CHANNEL T1;" >> $restorecmdfile
 Write-Output "RELEASE CHANNEL T2;" >> $restorecmdfile
 Write-Output "}" >> $restorecmdfile
@@ -275,6 +412,25 @@ Write-Output "EXIT" >> $restorecmdfile
 
 ## remove empty lines
 remove_empty_lines $restorecmdfile
+
+log "Backup restore of $oraUnq STARTED"
+
+### restore rman backup
+$rman_restore = rman target / cmdfile="'$restorecmdfile'" | Tee-Object $restorelogfile -Append
+
+log "[RMAN- rman_restore] $rman_restore"
+
+$error_string=$rman_restore | select-string -Pattern "RMAN-[0-9][0-9][0-9][0-9][0-9]"
+
+### Commenting out this piece until the code provides its own data folder to avoid ORA-07517 on txt files used by the script
+# if ($error_string) { 
+#     log "RMAN restore command failed with $error_string"
+#     exit 1
+# } 
+
+
+
+
 
 #### Create log file and temp files script
 
@@ -335,8 +491,10 @@ Write-Output "RUN" >> $recovercmdfile
 Write-Output "{" >> $recovercmdfile
 Write-Output "ALLOCATE CHANNEL T1 DEVICE TYPE disk;" >> $recovercmdfile
 Write-Output "ALLOCATE CHANNEL T2 DEVICE TYPE disk;" >> $recovercmdfile
+# archive log location
+Write-Output "Set archivelog destination to '$stgMnt\$oraSrc\';" >> $recovercmdfile
 Write-Output "SET UNTIL SCN $end_scn;" >> $recovercmdfile
-Write-Output "recover database;" >> $recovercmdfile
+Write-Output "recover database delete archivelog;" >> $recovercmdfile
 Write-Output "RELEASE CHANNEL T1;" >> $recovercmdfile
 Write-Output "RELEASE CHANNEL T2;" >> $recovercmdfile
 Write-Output "}" >> $recovercmdfile
