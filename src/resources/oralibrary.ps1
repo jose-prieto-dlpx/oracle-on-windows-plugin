@@ -179,6 +179,36 @@ log "Startup Mount database, $oraUnq FINISHED"
 
 }
 
+
+function startup_force_mount(){
+
+log "Startup Force Mount database, $oraUnq STARTED"
+
+$sqlQuery=@"
+WHENEVER SQLERROR EXIT SQL.SQLCODE
+set NewPage none
+set heading off
+set feedback off
+startup force mount;
+exit
+"@
+
+log "[SQL Query - startup_force_mount] $sqlQuery"
+
+$result = $sqlQuery | . $Env:ORACLE_HOME\bin\sqlplus.exe " /as sysdba"
+
+log "[startup_force_mount] $result"
+
+if ($LASTEXITCODE -ne 0){
+  log "Sql Query failed with ORA-$LASTEXITCODE"
+  Write-Output "Startup force mount failed with ORA-$LASTEXITCODE"
+  exit 1
+}
+
+log "Startup Force Mount database, $oraUnq FINISHED"
+
+}
+
 function startup(){
 
 log "Startup database, $oraUnq STARTED"

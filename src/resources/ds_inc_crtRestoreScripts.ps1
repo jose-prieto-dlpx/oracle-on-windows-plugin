@@ -16,6 +16,7 @@ $stgMnt = $env:STG_MNT_PATH
 $oraDbid = $env:ORACLE_DBID
 $oraSrc = $env:ORA_SRC
 $oraUnq = $env:ORA_UNQ_NAME
+$rmanChannels = $env:RMAN_CHANNELS
 $DBlogDir = ${delphixToolkitPath}+"\logs\"+${oraUnq}
 $restorecmdfile = "$DBlogDir\${oraUnq}.rstr"
 $switchcmdfile = "$DBlogDir\${oraUnq}.switch"
@@ -263,7 +264,7 @@ log "Compare Pre and Post Datafiles, $oraUnq FINISHED"
 log "Creating Restore Scripts, $switchcmdfile STARTED"
 
 Write-Output "catalog start with '$oraBkpLoc\' noprompt;" > $switchcmdfile
-Write-Output "catalog start with '$stgMnt\$oraSrc\' noprompt;" > $switchcmdfile
+Write-Output "catalog start with '$stgMnt\$oraSrc\' noprompt;" >> $switchcmdfile
 Write-Output "crosscheck backup;" >> $switchcmdfile
 Write-Output "set echo on" >> $switchcmdfile
 
@@ -299,6 +300,8 @@ $rman_restore = rman target / cmdfile="'$switchcmdfile'" | Tee-Object $restorelo
 log "[RMAN- rman_restore] $rman_restore"
 
 $error_string=$rman_restore | select-string -Pattern "RMAN-[0-9][0-9][0-9][0-9][0-9]"
+
+log "[RMAN- rman restore error string] $error_string"
 
 ##### compare if there is a new scn to recover to #####
 
@@ -345,7 +348,7 @@ if ( Compare-Object -ReferenceObject $(Get-Content $stgMnt\$oraSrc\new_ctl_bkp_e
 
 
 # run report schmema
-$reportSchema = "report schema; exit" > "$DBlogDir\${oraUnq}.report"
+Write-Output "report schema; exit" > "$DBlogDir\${oraUnq}.report"
 $files = rman target / cmdfile="'$DBlogDir\${oraUnq}.report'" 
 log "Report schema $files"
 
@@ -355,8 +358,8 @@ Write-Output "catalog start with '$oraBkpLoc\' noprompt;" > $restorecmdfile
 Write-Output "catalog start with '$stgMnt\$oraSrc\' noprompt;" >> $restorecmdfile
 Write-Output "RUN" >> $restorecmdfile
 Write-Output "{" >> $restorecmdfile
-Write-Output "ALLOCATE CHANNEL T1 DEVICE TYPE disk;" >> $restorecmdfile
-Write-Output "ALLOCATE CHANNEL T2 DEVICE TYPE disk;" >> $restorecmdfile
+for ($i=1; $i -le $rmanChannels; $i=$i+1)
+{Write-Output "ALLOCATE CHANNEL T${i} DEVICE TYPE disk;" >> $restorecmdfile}
 
 # ### rename datafiles
 
@@ -405,8 +408,9 @@ if ($backup_type -eq "DB FULL"){
 
       
 }
-Write-Output "RELEASE CHANNEL T1;" >> $restorecmdfile
-Write-Output "RELEASE CHANNEL T2;" >> $restorecmdfile
+for ($i=1; $i -le $rmanChannels; $i=$i+1)
+{Write-Output "RELEASE CHANNEL T${i};" >> $restorecmdfile}
+
 Write-Output "}" >> $restorecmdfile
 Write-Output "EXIT" >> $restorecmdfile
 

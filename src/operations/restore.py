@@ -83,7 +83,8 @@ def incremental_sync (source_connection,parameters,repository,source_config):
             "STG_MNT_PATH" : parameters.mount_path,
             "ORA_SRC" : source_config.db_name,
             "ORACLE_DB_IDENTITY_NAME" : source_config.db_identity_name,
-            "ORA_UNQ_NAME" : source_config.db_uniq_name
+            "ORA_UNQ_NAME" : source_config.db_uniq_name,
+            "RMAN_CHANNELS" : str(parameters.rman_channels)
            }
 
     masked_params = mask_object.mask_object(parameters,['password'])
