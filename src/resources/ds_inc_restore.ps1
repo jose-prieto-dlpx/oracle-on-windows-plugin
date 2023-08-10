@@ -21,6 +21,7 @@ $DBlogDir = ${delphixToolkitPath}+"\logs\"+${oraUnq}
 $restorecmdfile = "$DBlogDir\${oraUnq}.rstr"
 $renamelogtempfile = "$DBlogDir\${oraUnq}.rnm"
 $recovercmdfile = "$DBlogDir\${oraUnq}.rcv"
+$restorelogfile = "$DBlogDir\incremental_restore_${oraUnq}.rmanlog"
 
 $scriptDir = "${delphixToolkitPath}\scripts"
 
@@ -33,27 +34,35 @@ $Env:ORACLE_HOME=$oracleHome
 
 log "Executing $programName"
 
-log "Backup restore of $oraUnq STARTED"
+# log "Backup restore of $oraUnq STARTED"
 
-### restore rman backup
-$rman_restore = rman target / cmdfile="'$restorecmdfile'"
+# ### restore rman backup
+# $rman_restore = rman target / cmdfile="'$restorecmdfile'" | Tee-Object $restorelogfile -Append
 
-log "[RMAN- rman_restore] $rman_restore"
+# log "[RMAN- rman_restore] $rman_restore"
 
-$error_string=$rman_restore | select-string -Pattern "RMAN-[0-9][0-9][0-9][0-9][0-9]"
+# $error_string=$rman_restore | select-string -Pattern "RMAN-[0-9][0-9][0-9][0-9][0-9]"
 
-### Commenting out this piece until the code provides its own data folder to avoid ORA-07517 on txt files used by the script
-# if ($error_string) { 
-#     log "RMAN restore command failed with $error_string"
-#     exit 1
-# } 
+# ### Commenting out this piece until the code provides its own data folder to avoid ORA-07517 on txt files used by the script
+# # if ($error_string) { 
+# #     log "RMAN restore command failed with $error_string"
+# #     exit 1
+# # } 
 
 
 ##### recover database
 
-$rman_recover = rman target / cmdfile="'$recovercmdfile'"
+$rman_recover = rman target / cmdfile="'$recovercmdfile'" | Tee-Object $restorelogfile -Append
 
 log "[RMAN- rman_recover] $rman_recover"
+
+$missing_log=$rman_recover | select-string -Pattern "RMAN-06053|RMAN-06025|RMAN-06054"
+if ($missing_log) { 
+    log "RMAN recovery needs achivelog $missing_log"
+    Write-Output "MISSINGLOG"
+    exit 0
+} 
+
 
 $error_string=$rman_recover | select-string -Pattern "RMAN-[0-9][0-9][0-9][0-9][0-9]"
 

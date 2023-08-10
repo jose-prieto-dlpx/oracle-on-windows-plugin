@@ -201,8 +201,9 @@ $result = $rmanQuery | rman target /
 
 log "[restore_new_ctrlfile_backup] $result"
 
-$error_string=$result | select-string -Pattern "RMAN-[0-9][0-9][0-9][0-9][0-9]"
 
+
+$error_string=$result | select-string -Pattern "RMAN-[0-9][0-9][0-9][0-9][0-9]"
 if ($error_string) { 
     log "RMAN restore controlfile command failed with $error_string"
     exit 1

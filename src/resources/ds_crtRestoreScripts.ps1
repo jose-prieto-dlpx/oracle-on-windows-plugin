@@ -90,9 +90,9 @@ $sbt_tape_count = $sqlQuery |  . $Env:ORACLE_HOME\bin\sqlplus.exe -silent " /as 
 log "[sbt_tape_count] $sbt_tape_count"
 
 if ([int]$sbt_tape_count -eq 0) {
-      log "[Initiating RMAN connection check] - No STB backups found"
+      log "[Checking if SBT clean up is needed] - No STB backups found"
 } else {
-      log "[Initiating RMAN connection check] - Cleaning SBT backups"
+      log "[Checking if SBT clean up is needed] - Cleaning SBT backups"
       #### 2) the control file might have some SBT backups in its catalog, which will cause error during restore
       $testRman =@"
       allocate channel for maintenance device type sbt parms 'SBT_LIBRARY=oracle.disksbt, ENV=(BACKUP_DIR=c:\tmp)';
@@ -105,7 +105,7 @@ if ([int]$sbt_tape_count -eq 0) {
 "@ 
 
       $result = $testRman | . $Env:ORACLE_HOME\bin\rman.exe target /
-      log "[Initiating RMAN connection check] - Cleaning SBT backups completed"
+      log "[Checking if SBT clean up is needed] - Cleaning SBT backups completed"
 }
 
  #### get end time 

@@ -4,6 +4,7 @@
 
 from utils import setupLogger, executeScript, mask_object
 from generated.definitions import RepositoryDefinition, SourceConfigDefinition
+from dlpx.virtualization.platform.exceptions import UserError
 import json
 
 
@@ -96,5 +97,15 @@ def incremental_sync (source_connection,parameters,repository,source_config):
         crt_rstr_files =  executeScript.execute_powershell(source_connection,'ds_inc_crtRestoreScripts.ps1',env)
         logger.debug("Create Restore Files: {}".format(crt_rstr_files))
 
-        rstr_db =  executeScript.execute_powershell(source_connection,'ds_inc_restore.ps1',env)
-        logger.debug("Restore Database: {}".format(rstr_db))
+
+        if ("NEWSCN" in crt_rstr_files):
+            rstr_db =  executeScript.execute_powershell(source_connection,'ds_inc_restore.ps1',env)
+            logger.debug("Restore Database: {}".format(rstr_db))
+
+            if ("MISSINGLOG" in rstr_db):
+                logger.debug("Missing archive log: {}".format(rstr_db))  
+                raise UserError('Missing archive log in backups')
+
+        else:
+            logger.debug("New SCN not found")            
+            raise UserError('No new incremental / full backup found')
